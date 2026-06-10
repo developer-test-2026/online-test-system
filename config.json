@@ -1,0 +1,7 @@
+{
+  "randomQuestion": true,
+  "randomChoice": true,
+  "timeLimit": 0,
+  "passScore": 60,
+  "disqualifyLimit": 3
+}
