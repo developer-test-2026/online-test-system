@@ -1,28 +1,103 @@
-<h1>管理画面</h1>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>教員管理画面</title>
 
-<table border="1" id="tbl"></table>
+<style>
+body{font-family:sans-serif;margin:0;}
+#login{
+  text-align:center;
+  margin-top:100px;
+}
+#panel{display:none;padding:20px;}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+th,td{
+  border:1px solid #ccc;
+  padding:8px;
+  text-align:center;
+}
+th{
+  background:#eee;
+}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>教員ログイン</h2>
+  <input id="pass" type="password" placeholder="パスワード">
+  <button onclick="login()">ログイン</button>
+</div>
+
+<div id="panel">
+  <h2>リアルタイム受験状況</h2>
+  <button onclick="load()">更新</button>
+  <div id="table"></div>
+</div>
 
 <script>
 
-async function load(){
+const PASSWORD = "admin ishikariminami 2026"; // ←ここ変更
 
-  const res=await fetch("YOUR_SHEET_JSON_OR_EXPORT");
-  const data=await res.json();
+function login(){
+  const p = document.getElementById("pass").value;
 
-  document.getElementById("tbl").innerHTML=
-  `<tr>
-    <th>名前</th><th>学籍番号</th><th>点数</th><th>不正</th>
-  </tr>`+
-  data.map(d=>
-    `<tr>
-      <td>${d.name}</td>
-      <td>${d.studentId}</td>
-      <td>${d.score}</td>
-      <td>${d.risk}</td>
-    </tr>`
-  ).join("");
+  if(p === PASSWORD){
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
+
+    load();
+    setInterval(load, 5000); // ←リアルタイム更新
+  }else{
+    alert("パスワード違います");
+  }
 }
 
-load();
+// スプレッドシート公開CSV（簡易リアルタイム）
+const SHEET_URL =
+"https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_ID/pub?output=csv";
+
+async function load(){
+
+  const res = await fetch(SHEET_URL);
+  const text = await res.text();
+
+  const rows = text.trim().split("\n").map(r=>r.split(","));
+
+  let html = `<table>
+  <tr>
+    <th>名前</th>
+    <th>学籍番号</th>
+    <th>点数</th>
+    <th>不正</th>
+    <th>離脱</th>
+    <th>時間</th>
+  </tr>`;
+
+  for(let i=1;i<rows.length;i++){
+    let r = rows[i];
+
+    html += `<tr>
+      <td>${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
+      <td>${r[3]}</td>
+      <td>${r[4]}</td>
+      <td>${r[5]}</td>
+    </tr>`;
+  }
+
+  html += `</table>`;
+
+  document.getElementById("table").innerHTML = html;
+}
 
 </script>
+
+</body>
+</html>
