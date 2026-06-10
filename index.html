@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>試験システム</title>
+<title>試験</title>
 
 <style>
 body{margin:0;font-family:sans-serif;}
@@ -11,30 +11,26 @@ body{margin:0;font-family:sans-serif;}
   color:#c62828;
   text-align:center;
   padding:10px;
-  font-weight:bold;
 }
-#login{max-width:500px;margin:40px auto;text-align:center;}
-input{width:90%;padding:10px;margin:5px;}
+#login{text-align:center;margin:40px;}
+input{padding:10px;margin:5px;width:80%;}
 button{padding:10px 20px;}
-#counter{
-  position:fixed;
-  top:10px;
-  right:10px;
-  background:white;
-  border:1px solid #ccc;
-  padding:10px;
-}
 #app{display:none;}
+#counter{
+  position:fixed;top:10px;right:10px;
+  background:white;border:1px solid #ccc;padding:10px;
+}
 </style>
 </head>
+
 <body>
 
-<div class="header">試験中は他の操作をしないでください</div>
+<div class="header">試験中は他の操作禁止</div>
 
 <div id="counter">
-離脱: <span id="leaveCount">0</span><br>
-時間: <span id="leaveTime">0</span><br>
-不正: <span id="violation">0</span>
+離脱:<span id="l1">0</span><br>
+時間:<span id="l2">0</span><br>
+不正:<span id="l3">0</span>
 </div>
 
 <div id="login">
@@ -52,36 +48,30 @@ let questions=[];
 let current=0;
 let score=0;
 
-let active=false;
-
 let leaveCount=0;
 let leaveTime=0;
 let leaveStart=null;
 let violation=0;
 
-let timeLeft=1800;
-let timer=null;
+let active=false;
 
-// トークン（1回制御）
-let token=localStorage.getItem("exam_token");
+let token=localStorage.getItem("token");
 if(!token){
   token=crypto.randomUUID();
-  localStorage.setItem("exam_token",token);
+  localStorage.setItem("token",token);
 }
 
-// CSV読み込み
+// CSV
 async function load(){
   const res=await fetch("questions.csv");
   const text=await res.text();
 
-  const lines=text.trim().split("\n").slice(1);
-
-  questions=lines.map(l=>{
-    const c=l.split(",");
-    return{
+  questions=text.trim().split("\n").slice(1).map(l=>{
+    let c=l.split(",");
+    return {
       q:c[0],
       choices:c.slice(1,5),
-      ans:Number(c[5])
+      ans:+c[5]
     }
   });
 }
@@ -90,21 +80,21 @@ async function load(){
 function render(){
   let q=questions[current];
 
-  let html=q.choices.map((c,i)=>
-    `<label><input type="radio" name="q" value="${i+1}">${c}</label><br>`
-  ).join("");
-
   document.getElementById("app").innerHTML=
-  `<h3>${q.q}</h3>${html}<br>
-  <button onclick="next()">次へ</button>`;
+  `<h3>${q.q}</h3>`+
+  q.choices.map((c,i)=>
+    `<label><input type="radio" name="q" value="${i+1}">${c}</label><br>`
+  ).join("")+
+  `<br><button onclick="next()">次へ</button>`;
 }
 
 // 次へ
 function next(){
+
   let sel=document.querySelector("input[name=q]:checked");
   if(!sel)return;
 
-  if(Number(sel.value)==questions[current].ans){
+  if(+sel.value===questions[current].ans){
     score++;
   }
 
@@ -122,50 +112,48 @@ function next(){
 function start(){
 
   active=true;
-
   document.documentElement.requestFullscreen();
 
   document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="block";
 
-  timer=setInterval(()=>{
-    if(!active)return;
-
-    timeLeft--;
-
-    if(timeLeft<=0){
-      finish();
-    }
-  },1000);
-
   render();
+}
+
+// 送信
+async function send(){
+
+  await fetch("YOUR_GAS_URL",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      name:document.getElementById("name").value,
+      studentId:document.getElementById("sid").value,
+      score,
+      risk:leaveCount+violation,
+      leaveCount,
+      leaveTime,
+      token
+    })
+  });
+
 }
 
 // 終了
 function finish(){
 
   active=false;
-  clearInterval(timer);
 
-  let result = {
-    name: document.getElementById("name").value,
-    score: score,
-    risk: leaveCount + violation
-};
+  send();
 
-localStorage.setItem("last_result", JSON.stringify(result));
-  
-  let risk =
-    leaveCount*10 +
-    leaveTime*0.5 +
-    violation*20;
+  let risk=leaveCount*10+leaveTime*0.5+violation*20;
 
   document.body.innerHTML=
   `<h1>結果</h1>
-   <h2>スコア: ${score}/${questions.length}</h2>
-   <p>離脱回数: ${leaveCount}</p>
-   <p>離脱時間: ${leaveTime}</p>
-   <p>不正スコア: ${risk}</p>`;
+   <h2>スコア:${score}/${questions.length}</h2>
+   <p>離脱:${leaveCount}</p>
+   <p>時間:${leaveTime}</p>
+   <p>不正:${risk}</p>`;
 }
 
 // 監視
@@ -180,9 +168,9 @@ document.addEventListener("visibilitychange",()=>{
     leaveCount++;
     leaveTime+=Math.round((Date.now()-leaveStart)/1000);
 
-    document.getElementById("leaveCount").innerText=leaveCount;
-    document.getElementById("leaveTime").innerText=leaveTime;
-    document.getElementById("violation").innerText=violation;
+    document.getElementById("l1").innerText=leaveCount;
+    document.getElementById("l2").innerText=leaveTime;
+    document.getElementById("l3").innerText=violation;
   }
 });
 
