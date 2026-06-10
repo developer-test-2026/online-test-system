@@ -1,0 +1,14 @@
+<h2>CSV生成</h2>
+<textarea id="input" style="width:100%;height:200px;"></textarea>
+<button onclick="gen()">生成</button>
+
+<script>
+function gen(){
+  const text=document.getElementById("input").value;
+  const blob=new Blob([text],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="questions.csv";
+  a.click();
+}
+</script>
