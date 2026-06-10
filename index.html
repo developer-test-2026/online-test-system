@@ -5,7 +5,7 @@
 <title>試験システム</title>
 
 <style>
-body{font-family:sans-serif;margin:0;}
+body{margin:0;font-family:sans-serif;}
 .header{
   background:#ffebee;
   color:#c62828;
@@ -13,24 +13,9 @@ body{font-family:sans-serif;margin:0;}
   padding:10px;
   font-weight:bold;
 }
-
-#login{
-  max-width:500px;
-  margin:40px auto;
-  text-align:center;
-}
-
-input{
-  width:90%;
-  padding:10px;
-  margin:5px;
-}
-
-button{
-  padding:10px 20px;
-  cursor:pointer;
-}
-
+#login{max-width:500px;margin:40px auto;text-align:center;}
+input{width:90%;padding:10px;margin:5px;}
+button{padding:10px 20px;cursor:pointer;}
 #counter{
   position:fixed;
   top:10px;
@@ -39,17 +24,17 @@ button{
   border:1px solid #ccc;
   padding:10px;
 }
+#app{display:none;}
 </style>
 </head>
 <body>
 
-<div class="header">
-試験中は他の操作をしないでください
-</div>
+<div class="header">試験中は他のアプリを開かないでください</div>
 
 <div id="counter">
 離脱回数: <span id="leaveCount">0</span><br>
-離脱時間: <span id="leaveTime">0</span>
+離脱時間: <span id="leaveTime">0</span><br>
+不正: <span id="violation">0</span>
 </div>
 
 <div id="login">
@@ -59,7 +44,7 @@ button{
 <button onclick="start()">開始</button>
 </div>
 
-<div id="app" style="display:none;"></div>
+<div id="app"></div>
 
 <script>
 
@@ -69,19 +54,30 @@ let config={};
 let current=0;
 let score=0;
 
+let active=false;
+
 let leaveCount=0;
 let leaveTime=0;
 let leaveStart=null;
+let violation=0;
 
-let active=false;
+let timeLeft=0;
+let timer=null;
 
+let token=localStorage.getItem("exam_token");
+if(!token){
+  token=crypto.randomUUID();
+  localStorage.setItem("exam_token",token);
+}
+
+// CSV読み込み
 async function load(){
-  const q = await fetch("questions.csv");
-  const text = await q.text();
+  const res=await fetch("questions.csv");
+  const text=await res.text();
 
-  const lines = text.trim().split("\n").slice(1);
+  const lines=text.trim().split("\n").slice(1);
 
-  questions = lines.map(l=>{
+  questions=lines.map(l=>{
     const c=l.split(",");
     return{
       q:c[0],
@@ -91,22 +87,20 @@ async function load(){
   });
 }
 
-function shuffle(a){
-  return a.sort(()=>Math.random()-0.5);
-}
-
+// 出題
 function render(){
   let q=questions[current];
 
-  let choices=q.choices.map((c,i)=>
+  let html=q.choices.map((c,i)=>
     `<label><input type="radio" name="q" value="${i+1}">${c}</label><br>`
   ).join("");
 
   document.getElementById("app").innerHTML=
-  `<h3>${q.q}</h3>${choices}<br>
+  `<h3>${q.q}</h3>${html}<br>
   <button onclick="next()">次へ</button>`;
 }
 
+// 次へ
 function next(){
   let sel=document.querySelector("input[name=q]:checked");
   if(!sel)return;
@@ -125,36 +119,66 @@ function next(){
   render();
 }
 
-function finish(){
-  active=false;
-
-  document.body.innerHTML=
-  `<h1>結果</h1>
-  <h2>スコア: ${score}/${questions.length}</h2>
-  <p>離脱回数: ${leaveCount}</p>
-  <p>離脱時間: ${leaveTime}秒</p>`;
-}
-
+// 開始
 function start(){
+
   active=true;
+
+  document.documentElement.requestFullscreen();
 
   document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="block";
 
+  timeLeft=1800;
+
+  timer=setInterval(()=>{
+    if(!active)return;
+
+    timeLeft--;
+
+    if(timeLeft<=0){
+      finish();
+    }
+  },1000);
+
   render();
 }
 
+// 終了
+function finish(){
+
+  active=false;
+
+  clearInterval(timer);
+
+  let risk =
+    leaveCount*10 +
+    leaveTime*0.5 +
+    violation*20;
+
+  document.body.innerHTML=
+  `<h1>結果</h1>
+   <h2>スコア: ${score}/${questions.length}</h2>
+   <p>離脱回数: ${leaveCount}</p>
+   <p>離脱時間: ${leaveTime}</p>
+   <p>不正スコア: ${risk}</p>`;
+}
+
+// 監視
 document.addEventListener("visibilitychange",()=>{
+
   if(!active)return;
 
   if(document.hidden){
     leaveStart=Date.now();
+    violation++;
   }else{
     leaveCount++;
     leaveTime+=Math.round((Date.now()-leaveStart)/1000);
 
     document.getElementById("leaveCount").innerText=leaveCount;
     document.getElementById("leaveTime").innerText=leaveTime;
+    document.getElementById("violation").innerText=violation;
   }
 });
 
