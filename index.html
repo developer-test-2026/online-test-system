@@ -147,6 +147,14 @@ function finish(){
   active=false;
   clearInterval(timer);
 
+  let result = {
+    name: document.getElementById("name").value,
+    score: score,
+    risk: leaveCount + violation
+};
+
+localStorage.setItem("last_result", JSON.stringify(result));
+  
   let risk =
     leaveCount*10 +
     leaveTime*0.5 +
