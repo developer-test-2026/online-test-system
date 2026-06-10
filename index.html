@@ -2,135 +2,163 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>テストシステム</title>
+<title>試験システム</title>
 
 <style>
-body { font-family: sans-serif; margin:0; }
-.header {
+body{font-family:sans-serif;margin:0;}
+.header{
   background:#ffebee;
   color:#c62828;
   text-align:center;
   padding:10px;
+  font-weight:bold;
 }
-#userInfo { max-width:500px; margin:20px auto; text-align:center; }
-#counter { position:fixed; top:10px; right:10px; background:#fff; padding:10px; border:1px solid #ccc; }
+
+#login{
+  max-width:500px;
+  margin:40px auto;
+  text-align:center;
+}
+
+input{
+  width:90%;
+  padding:10px;
+  margin:5px;
+}
+
+button{
+  padding:10px 20px;
+  cursor:pointer;
+}
+
+#counter{
+  position:fixed;
+  top:10px;
+  right:10px;
+  background:white;
+  border:1px solid #ccc;
+  padding:10px;
+}
 </style>
 </head>
 <body>
 
-<div class="header">テスト中は他のタブを開かないでください</div>
+<div class="header">
+試験中は他の操作をしないでください
+</div>
 
 <div id="counter">
 離脱回数: <span id="leaveCount">0</span><br>
 離脱時間: <span id="leaveTime">0</span>
 </div>
 
-<div id="userInfo">
+<div id="login">
 <h2>受験者情報</h2>
-<input id="name" placeholder="氏名"><br><br>
-<input id="id" placeholder="学籍番号"><br><br>
+<input id="name" placeholder="氏名"><br>
+<input id="sid" placeholder="学籍番号"><br>
 <button onclick="start()">開始</button>
 </div>
 
-<div id="test" style="display:none;"></div>
+<div id="app" style="display:none;"></div>
 
 <script>
 
-let questions = [];
-let config = {};
-let current = 0;
-let score = 0;
+let questions=[];
+let config={};
 
-let leaveCount = 0;
-let totalLeave = 0;
-let startLeave = null;
-let active = false;
+let current=0;
+let score=0;
 
-async function loadData(){
-    const res = await fetch("questions.csv");
-    const text = await res.text();
+let leaveCount=0;
+let leaveTime=0;
+let leaveStart=null;
 
-    const lines = text.trim().split("\n").slice(1);
+let active=false;
 
-    questions = lines.map(l=>{
-        const c = l.split(",");
-        return {
-            q: c[0],
-            choices: c.slice(1,5),
-            answer: Number(c[5])
-        };
-    });
+async function load(){
+  const q = await fetch("questions.csv");
+  const text = await q.text();
+
+  const lines = text.trim().split("\n").slice(1);
+
+  questions = lines.map(l=>{
+    const c=l.split(",");
+    return{
+      q:c[0],
+      choices:c.slice(1,5),
+      ans:Number(c[5])
+    }
+  });
 }
 
-function shuffle(arr){
-    return arr.sort(()=>Math.random()-0.5);
+function shuffle(a){
+  return a.sort(()=>Math.random()-0.5);
 }
 
 function render(){
-    let q = questions[current];
+  let q=questions[current];
 
-    let choices = q.choices.map((c,i)=>`
-        <label>
-            <input type="radio" name="q" value="${i+1}">
-            ${c}
-        </label><br>
-    `).join("");
+  let choices=q.choices.map((c,i)=>
+    `<label><input type="radio" name="q" value="${i+1}">${c}</label><br>`
+  ).join("");
 
-    document.getElementById("test").innerHTML =
-        `<h3>${q.q}</h3>${choices}<br>
-        <button onclick="next()">次へ</button>`;
+  document.getElementById("app").innerHTML=
+  `<h3>${q.q}</h3>${choices}<br>
+  <button onclick="next()">次へ</button>`;
 }
 
 function next(){
-    let sel = document.querySelector("input[name=q]:checked");
-    if(!sel) return;
+  let sel=document.querySelector("input[name=q]:checked");
+  if(!sel)return;
 
-    if(Number(sel.value) === questions[current].answer){
-        score++;
-    }
+  if(Number(sel.value)==questions[current].ans){
+    score++;
+  }
 
-    current++;
+  current++;
 
-    if(current >= questions.length){
-        finish();
-        return;
-    }
+  if(current>=questions.length){
+    finish();
+    return;
+  }
 
-    render();
+  render();
 }
 
 function finish(){
-    active = false;
+  active=false;
 
-    document.body.innerHTML =
-        `<h1>終了</h1>
-        <p>スコア: ${score}/${questions.length}</p>
-        <p>離脱回数: ${leaveCount}</p>
-        <p>離脱時間: ${totalLeave}秒</p>`;
+  document.body.innerHTML=
+  `<h1>結果</h1>
+  <h2>スコア: ${score}/${questions.length}</h2>
+  <p>離脱回数: ${leaveCount}</p>
+  <p>離脱時間: ${leaveTime}秒</p>`;
 }
 
 function start(){
-    active = true;
-    document.getElementById("userInfo").style.display="none";
-    document.getElementById("test").style.display="block";
-    render();
+  active=true;
+
+  document.getElementById("login").style.display="none";
+  document.getElementById("app").style.display="block";
+
+  render();
 }
 
 document.addEventListener("visibilitychange",()=>{
-    if(!active) return;
+  if(!active)return;
 
-    if(document.hidden){
-        startLeave = Date.now();
-    }else{
-        leaveCount++;
-        totalLeave += Math.round((Date.now()-startLeave)/1000);
+  if(document.hidden){
+    leaveStart=Date.now();
+  }else{
+    leaveCount++;
+    leaveTime+=Math.round((Date.now()-leaveStart)/1000);
 
-        document.getElementById("leaveCount").innerText = leaveCount;
-        document.getElementById("leaveTime").innerText = totalLeave;
-    }
+    document.getElementById("leaveCount").innerText=leaveCount;
+    document.getElementById("leaveTime").innerText=leaveTime;
+  }
 });
 
-window.onload = loadData;
+window.onload=load;
 
 </script>
 
