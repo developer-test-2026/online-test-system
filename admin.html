@@ -3,101 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <title>教員管理画面</title>
-
 <style>
-body{font-family:sans-serif;margin:0;}
-#login{
-  text-align:center;
-  margin-top:100px;
-}
-#panel{display:none;padding:20px;}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-th,td{
-  border:1px solid #ccc;
-  padding:8px;
-  text-align:center;
-}
-th{
-  background:#eee;
-}
+body{font-family:sans-serif;padding:20px;}
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 </style>
 </head>
 <body>
-
+<h2>教員用ダッシュボード</h2>
 <div id="login">
-  <h2>教員ログイン</h2>
   <input id="pass" type="password" placeholder="パスワード">
   <button onclick="login()">ログイン</button>
 </div>
 
-<div id="panel">
-  <h2>リアルタイム受験状況</h2>
+<div id="panel" style="display:none;">
   <button onclick="load()">更新</button>
+  <button onclick="downloadCSV()">CSVダウンロード</button>
   <div id="table"></div>
 </div>
 
 <script>
-
-const PASSWORD = "admin ishikariminami 2026"; // ←ここ変更
+const PASSWORD = "admin ishikariminami 2026";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_ID/pub?output=csv";
+let csvData = "";
 
 function login(){
-  const p = document.getElementById("pass").value;
-
-  if(p === PASSWORD){
+  if(document.getElementById("pass").value === PASSWORD){
     document.getElementById("login").style.display="none";
     document.getElementById("panel").style.display="block";
-
     load();
-    setInterval(load, 5000); // ←リアルタイム更新
-  }else{
-    alert("パスワード違います");
   }
 }
-
-// スプレッドシート公開CSV（簡易リアルタイム）
-const SHEET_URL =
-"https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_ID/pub?output=csv";
 
 async function load(){
-
   const res = await fetch(SHEET_URL);
-  const text = await res.text();
-
-  const rows = text.trim().split("\n").map(r=>r.split(","));
-
-  let html = `<table>
-  <tr>
-    <th>名前</th>
-    <th>学籍番号</th>
-    <th>点数</th>
-    <th>不正</th>
-    <th>離脱</th>
-    <th>時間</th>
-  </tr>`;
-
-  for(let i=1;i<rows.length;i++){
-    let r = rows[i];
-
-    html += `<tr>
-      <td>${r[0]}</td>
-      <td>${r[1]}</td>
-      <td>${r[2]}</td>
-      <td>${r[3]}</td>
-      <td>${r[4]}</td>
-      <td>${r[5]}</td>
-    </tr>`;
+  csvData = await res.text();
+  const rows = csvData.trim().split("\n");
+  let html = `<table><tr><th>名前</th><th>学籍番号</th><th>点数</th><th>離脱回数</th><th>離脱時間</th><th>不正</th></tr>`;
+  for(let i=1; i<rows.length; i++){
+    let r = rows[i].split(",");
+    html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[3]}</td></tr>`;
   }
-
-  html += `</table>`;
-
-  document.getElementById("table").innerHTML = html;
+  document.getElementById("table").innerHTML = html + `</table>`;
 }
 
+function downloadCSV(){
+  const blob = new Blob([csvData], {type: "text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "exam_results.csv";
+  a.click();
+}
 </script>
-
 </body>
 </html>
