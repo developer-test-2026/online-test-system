@@ -3,280 +3,284 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>教員用リアルタイム管理ダッシュボード</title>
+<title>試験システム - 管理者画面</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #333; }
-  header { background: #2c3e50; color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-  .main-container { padding: 25px; max-width: 1300px; margin: 0 auto; }
-  .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
-  .tab-btn { padding: 12px 24px; background: #e0e0e0; border: none; cursor: pointer; font-size: 15px; border-radius: 4px 4px 0 0; font-weight: bold; }
-  .tab-btn.active { background: #2196f3; color: white; }
-  .view-panel { background: white; padding: 25px; border-radius: 0 0 6px 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: none; }
-  .view-panel.active { display: block; }
-  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-  .metric-card { background: white; border-radius: 6px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; text-align: center; }
-  .metric-card h3 { margin: 0; font-size: 14px; color: #64748b; text-transform: uppercase; }
-  .metric-card .num { font-size: 36px; font-weight: bold; margin-top: 10px; color: #1e293b; }
-  .text-danger { color: #ef4444 !important; }
-  table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-  th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
-  th { background: #f1f5f9; font-weight: bold; color: #475569; }
-  tr:nth-child(even) { background: #f8fafc; }
-  .action-btn { background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-  .filter-bar { background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-  .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; }
-  .delete-btn { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
-  .delete-btn:hover { background: #dc2626; }
+  :root { 
+    --theme-dark: #1e293b; 
+    --theme-blue: #1565c0; 
+    --theme-hover: #0d47a1;
+    --bg-light: #f8fafc; 
+    --border-color: #cbd5e1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: #eef2f7; color: #334155; }
+  
+  /* ===== ログイン画面デザイン ===== */
+  .login-container { max-width: 420px; margin: 100px auto; background: white; padding: 36px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .login-title { font-size: 22px; font-weight: bold; margin-bottom: 24px; text-align: center; color: var(--theme-blue); border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
+  
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 6px; color: #475569; }
+  .form-group input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border-color); border-radius: 6px; font-size: 15px; background: #fafbfc; }
+  .form-group input:focus { outline: none; border-color: var(--theme-blue); background: white; }
+  
+  .btn { width: 100%; padding: 14px; background: var(--theme-blue); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+  .btn:hover { background: var(--theme-hover); }
+  
+  /* ===== ダッシュボード共通構造 ===== */
+  .dashboard { display: none; }
+  .dashboard.active { display: block; }
+  
+  header { background: var(--theme-dark); color: white; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  header h1 { margin: 0; font-size: 20px; font-weight: bold; letter-spacing: 0.5px; }
+  .logout-btn { background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+  .logout-btn:hover { background: #475569; }
+  
+  .main-content { max-width: 1200px; margin: 30px auto; background: white; padding: 36px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
+  
+  /* タブメニュー */
+  .tabs { display: flex; gap: 12px; border-bottom: 2px solid #e2e8f0; margin-bottom: 24px; }
+  .tab { padding: 12px 24px; cursor: pointer; font-weight: bold; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; font-size: 15px; transition: all 0.2s; }
+  .tab:hover { color: var(--theme-blue); }
+  .tab.active { color: var(--theme-blue); border-bottom: 2px solid var(--theme-blue); }
+  
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  
+  h2 { margin-top: 0; font-size: 20px; color: var(--theme-dark); }
+  
+  /* テーブル構造 */
+  table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+  table th, table td { padding: 14px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+  table th { background: #f1f5f9; color: #475569; font-weight: bold; border-top: 1px solid #e2e8f0; }
+  table tr:hover { background: #fafbfc; }
+  
+  .btn-action { background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.15s; }
+  .btn-action:hover { background: #0369a1; }
+  
+  /* 状態表示ラベル */
+  .status-success { color: #16a34a; font-weight: bold; background: #f0fdf4; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0; font-size: 12px; }
+  .status-fail { color: #dc2626; font-weight: bold; background: #fef2f2; padding: 3px 8px; border-radius: 4px; border: 1px solid #fecaca; font-size: 12px; }
 </style>
 </head>
 <body>
 
-<header>
-  <div style="font-size: 20px; font-weight: bold;">試験リアルタイム統括ダッシュボード</div>
-  <div style="display: flex; align-items: center; gap: 15px;">
-    <label style="font-size:14px;"><input type="checkbox" id="auto-refresh-toggle" checked onchange="toggleAutoRefresh()"> リアルタイム自動更新(10秒周期)</label>
-    <button class="action-btn" onclick="fetchLatestData()" style="background:#3b82f6;">データ強制同期</button>
+<div id="login-panel" class="login-container">
+  <div class="login-title">管理者ダッシュボード</div>
+  <div class="form-group">
+    <label>ユーザー名 ID</label>
+    <input type="text" id="admin-username" placeholder="admin" autofocus>
   </div>
-</header>
-
-<div class="main-container">
-
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('pane-dashboard')">リアルタイム監視</button>
-    <button class="tab-btn" onclick="switchTab('pane-csv')">CSV出力・成績台帳</button>
-    <button class="tab-btn" onclick="switchTab('pane-grading')">記述式の手動採点</button>
-    <button class="tab-btn" onclick="switchTab('pane-analysis')">試験結果分析</button>
+  <div class="form-group">
+    <label>パスワード</label>
+    <input type="password" id="admin-password" placeholder="パスワードを入力">
   </div>
+  <button class="btn" onclick="handleLogin()">認証してログイン</button>
+</div>
 
-  <div id="pane-dashboard" class="view-panel active">
-    <div class="summary-grid">
-      <div class="metric-card"><h3>受験中人数</h3><div class="num" id="stat-active">0</div></div>
-      <div class="metric-card"><h3>終了人数</h3><div class="num" id="stat-done">0</div></div>
-      <div class="metric-card"><h3>現在の平均進捗問題</h3><div class="num" id="stat-avg-q">Q3</div></div>
-      <div class="metric-card"><h3>離脱警告・不正検知総数</h3><div class="num text-danger" id="stat-violation">0</div></div>
+<div id="dashboard-panel" class="dashboard">
+  <header>
+    <h1>オンライン試験システム 管理者用コントロールパネル</h1>
+    <button class="logout-btn" onclick="handleLogout()">安全にログアウト</button>
+  </header>
+  
+  <div class="main-content">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('tab-students', this)">受験者一覧・再受験管理</div>
+      <div class="tab" onclick="switchTab('tab-logs', this)">管理者ログインログ</div>
     </div>
     
-    <h3>リアルタイム受験生ステータス</h3>
-    <table>
-      <thead>
-        <tr><th>学籍番号</th><th>氏名</th><th>クラス</th><th>進行状況</th><th>現在位置</th><th>離脱回数</th><th>不正フラグ</th></tr>
-      </thead>
-      <tbody id="table-live-monitoring"></tbody>
-    </table>
-  </div>
-
-  <div id="pane-csv" class="view-panel">
-    <h3>高度なデータフィルタリング・CSVダウンロード</h3>
-    <div class="filter-bar">
-      <div>
-        <label>クラス別: </label>
-        <select id="filter-class"><option value="ALL">全クラス</option><option value="1年1組">1年1組</option><option value="1年5組">1年5組</option><option value="2年1組">2年1組</option></select>
-      </div>
-      <div>
-        <label>試験ID別: </label>
-        <select id="filter-exam"><option value="ALL">全試験</option><option value="EXAM-2026-A">EXAM-2026-A</option></select>
-      </div>
-      <div>
-        <label>日付別: </label>
-        <input type="date" id="filter-date">
-      </div>
-      <button class="action-btn" onclick="downloadCustomCSV()" style="background:#059669;">条件に適合するCSVをダウンロード</button>
+    <div id="tab-students" class="tab-panel active">
+      <h2>提出された受験記録とリアルタイム制御</h2>
+      <p style="font-size:13px; color:#64748b; margin-top:-6px;">※ブラウザの共通共有領域(LocalStorage)に保存されている提出レシートデータを展開しています。</p>
+      <table>
+        <thead>
+          <tr>
+            <th>管理用レシート番号</th>
+            <th>クラス</th>
+            <th>学籍番号</th>
+            <th>氏名</th>
+            <th>自動採点スコア</th>
+            <th>データ提出日時</th>
+            <th>不正離脱回数</th>
+            <th>制御操作</th>
+          </tr>
+        </thead>
+        <tbody id="student-list-body">
+          </tbody>
+      </table>
     </div>
-
-    <table>
-      <thead>
-        <tr><th>管理番号</th><th>クラス</th><th>学籍番号</th><th>氏名</th><th>自動スコア</th><th>最終確定スコア</th><th>提出時間</th><th>管理アクション</th></tr>
-      </thead>
-      <tbody id="table-ledger-body"></tbody>
-    </table>
-  </div>
-
-  <div id="pane-grading" class="view-panel">
-    <h3>記述問題の記述判定・採点管理（教員用審査）</h3>
-    <p style="color:#555;">生徒が記述した回答を模範解答と比較し、○×ボタンまたは直接加点入力で採点を行えます。</p>
-    <table>
-      <thead>
-        <tr><th>受験者名</th><th>問題内容</th><th>生徒の回答記述</th><th>模範解答</th><th>採点アクション / 判定</th></tr>
-      </thead>
-      <tbody id="table-grading-body"></tbody>
-    </table>
-  </div>
-
-  <div id="pane-analysis" class="view-panel">
-    <h3>全体成績統計分析</h3>
-    <div class="summary-grid">
-      <div class="metric-card"><h3>受験者総数</h3><div class="num" id="anal-total">0 名</div></div>
-      <div class="metric-card"><h3>最高得点</h3><div class="num" style="color:#10b981;" id="anal-max">0</div></div>
-      <div class="metric-card"><h3>平均得点</h3><div class="num" style="color:#3b82f6;" id="anal-avg">0</div></div>
-      <div class="metric-card"><h3>最低得点</h3><div class="num" style="color:#ef4444;" id="anal-min">0</div></div>
+    
+    <div id="tab-logs" class="tab-panel">
+      <h2>管理者セキュリティログイン履歴</h2>
+      <p style="font-size:13px; color:#64748b; margin-top:-6px;">管理者画面に対するログイン・アクセス試行の監査トレースログです。</p>
+      <table>
+        <thead>
+          <tr>
+            <th>ログイン試行日時</th>
+            <th>試行ユーザー名</th>
+            <th>認証ステータス</th>
+          </tr>
+        </thead>
+        <tbody id="log-list-body">
+          </tbody>
+      </table>
     </div>
   </div>
-
 </div>
 
 <script>
-// シミュレーション＆蓄積用モックデータベース
-let dbRecords = [
-  { receiptId:"REC-H8Y9A", examId:"EXAM-2026-A", date:"2026-06-11", class:"1年5組", id:"20260501", name:"阿部 健太", status:"提出済", currentQ:4, autoScore:30, finalScore:50, violation:0, leaveCount:0, time:"2026/06/11 10:15:30", textAns:"データと手続きを一つにまとめて保護すること。" },
-  { receiptId:"REC-K3M1Z", examId:"EXAM-2026-A", date:"2026-06-11", class:"1年1組", id:"20260105", name:"佐藤 美咲", status:"提出済", currentQ:4, autoScore:40, finalScore:40, violation:3, leaveCount:2, time:"2026/06/11 10:20:12", textAns:"プログラムを箱に閉じ込める手法。" },
-  { receiptId:"REC-W4P7X", examId:"EXAM-2026-A", date:"2026-06-11", class:"1年5組", id:"20260512", name:"鈴木 翔太", status:"受験中", currentQ:2, autoScore:0, finalScore:0, violation:0, leaveCount:0, time:"-", textAns:"" }
-];
+  // 初期認定アカウント情報
+  const ADMIN_ID = "admin";
+  const ADMIN_PW = "password0000";
 
-let refreshInterval = null;
-
-function switchTab(paneId) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById(paneId).classList.add('active');
-  renderAllPanels();
-}
-
-function fetchLatestData() {
-  console.log("GAS / スプレッドシートから最新データをフェッチしました。");
-  renderAllPanels();
-}
-
-function toggleAutoRefresh() {
-  const isChecked = document.getElementById('auto-refresh-toggle').checked;
-  if(isChecked) {
-    refreshInterval = setInterval(fetchLatestData, 10000);
-  } else {
-    clearInterval(refreshInterval);
-  }
-}
-
-function renderAllPanels() {
-  // 1. リアルタイム監視
-  const liveTbody = document.getElementById('table-live-monitoring');
-  liveTbody.innerHTML = "";
-  let activeCount = 0, doneCount = 0, totalViolation = 0;
-  
-  dbRecords.forEach(r => {
-    if(r.status === "受験中") activeCount++;
-    if(r.status === "提出済") doneCount++;
-    totalViolation += r.violation;
-
-    liveTbody.innerHTML += `
-      <tr>
-        <td>${r.id}</td>
-        <td><b>${r.name}</b></td>
-        <td>${r.class}</td>
-        <td><span style="color:${r.status==='提出済'?'green':'#ff9800'}; font-weight:bold;">${r.status}</span></td>
-        <td>Q ${r.currentQ}</td>
-        <td>${r.leaveCount} 回</td>
-        <td class="${r.violation > 0 ? 'text-danger':''}" style="font-weight:bold;">${r.violation > 0 ? r.violation + ' 個の警告' : '健全'}</td>
-      </tr>`;
-  });
-  
-  document.getElementById('stat-active').innerText = activeCount;
-  document.getElementById('stat-done').innerText = doneCount;
-  document.getElementById('stat-violation').innerText = totalViolation;
-
-  // 2. 成績台帳テーブル（削除・再受験許可アクションを追加）
-  const ledgerTbody = document.getElementById('table-ledger-body');
-  ledgerTbody.innerHTML = "";
-  dbRecords.forEach(r => {
-    ledgerTbody.innerHTML += `
-      <tr>
-        <td>${r.receiptId}</td>
-        <td>${r.class}</td>
-        <td>${r.id}</td>
-        <td>${r.name}</td>
-        <td>${r.autoScore}点</td>
-        <td><b>${r.finalScore}点</b></td>
-        <td>${r.time}</td>
-        <td>
-          <button class="delete-btn" onclick="deleteRecord('${r.receiptId}', '${r.name}')">データ削除 (再受験許可)</button>
-        </td>
-      </tr>`;
-  });
-
-  // 3. 記述式の手動採点
-  const gradingTbody = document.getElementById('table-grading-body');
-  gradingTbody.innerHTML = "";
-  dbRecords.filter(r => r.status === "提出済").forEach((r, index) => {
-    gradingTbody.innerHTML += `
-      <tr>
-        <td><b>${r.name}</b><br><small>${r.class}</small></td>
-        <td>Q4. オブジェクト指向のカプセル化について説明せよ。</td>
-        <td style="background:#fffde7; font-weight:bold;">${r.textAns}</td>
-        <td>データと手続きを一体化し、外部から隠蔽すること。</td>
-        <td>
-          <button onclick="applyGrading('${r.receiptId}', true)" style="background:#10b981; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">◯ 正解にする(+20点)</button>
-          <button onclick="applyGrading('${r.receiptId}', false)" style="background:#ef4444; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:3px; margin-left:5px;">× 不正解(0点)</button>
-        </td>
-      </tr>`;
-  });
-
-  // 4. 分析
-  const doneStudents = dbRecords.filter(r => r.status === "提出済");
-  if(doneStudents.length > 0) {
-    const scores = doneStudents.map(r => r.finalScore);
-    document.getElementById('anal-total').innerText = doneStudents.length + " 名";
-    document.getElementById('anal-max').innerText = Math.max(...scores) + " 点";
-    document.getElementById('anal-min').innerText = Math.min(...scores) + " 点";
-    document.getElementById('anal-avg').innerText = (scores.reduce((a,b)=>a+b, 0) / scores.length).toFixed(1) + " 点";
-  } else {
-    document.getElementById('anal-total').innerText = "0 名";
-    document.getElementById('anal-max').innerText = "0 点";
-    document.getElementById('anal-min').innerText = "0 点";
-    document.getElementById('anal-avg').innerText = "0 点";
-  }
-}
-
-// 【機能追加】管理者側でレコードを削除し、生徒の再受験を可能にする処理
-function deleteRecord(receiptId, studentName) {
-  if(confirm(`【警告】${studentName} さんの受験データ (${receiptId}) をダッシュボードおよびシステムから削除しますか？\nこの操作を行うと生徒は同一の学籍番号で再受験可能になります。`)) {
+  // ログイン認証アクション
+  function handleLogin() {
+    const userInp = document.getElementById('admin-username').value.trim();
+    const passInp = document.getElementById('admin-password').value;
     
-    // 画面モックDBからの削除ロジック
-    dbRecords = dbRecords.filter(r => r.receiptId !== receiptId);
+    const currentLogs = JSON.parse(localStorage.getItem('exam_admin_login_logs') || '[]');
+    const nowTime = new Date().toLocaleString('ja-JP');
+
+    if (userInp === ADMIN_ID && passInp === ADMIN_PW) {
+      // 成功ログ記録
+      currentLogs.push({ username: userInp, timestamp: nowTime, status: "成功" });
+      localStorage.setItem('exam_admin_login_logs', JSON.stringify(currentLogs));
+      
+      // セッションストレージで擬似ログイン保持
+      sessionStorage.setItem('admin_session_auth', 'true');
+      
+      // パネルのトグル
+      document.getElementById('login-panel').style.display = 'none';
+      document.getElementById('dashboard-panel').classList.add('active');
+      
+      // 初期データのロード
+      loadStudentRecords();
+    } else {
+      // 失敗ログ記録
+      currentLogs.push({ username: userInp || "(空欄)", timestamp: nowTime, status: "失敗" });
+      localStorage.setItem('exam_admin_login_logs', JSON.stringify(currentLogs));
+      
+      alert("認証エラー: ユーザー名またはパスワードが間違っています。");
+    }
+  }
+
+  // ログアウト処理
+  function handleLogout() {
+    sessionStorage.removeItem('admin_session_auth');
+    location.reload();
+  }
+
+  // タブ切り替え処理
+  function switchTab(targetId, clickTab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     
-    alert(`${studentName} さんのデータを削除しました。\n※実際のGAS運用環境では、このタイミングで連動してGoogleスプレッドシートの該当行を削除するAPIを叩くか、直接スプレッドシート側から行削除を行ってください。`);
-    renderAllPanels();
+    clickTab.classList.add('active');
+    document.getElementById(targetId).classList.add('active');
+    
+    if (targetId === 'tab-students') loadStudentRecords();
+    if (targetId === 'tab-logs') loadLoginLogs();
   }
-}
 
-function applyGrading(receiptId, isCorrect) {
-  const target = dbRecords.find(r => r.receiptId === receiptId);
-  if(target) {
-    target.finalScore = target.autoScore + (isCorrect ? 20 : 0);
-    alert(`${target.name} さんの記述採点を確定しました。最終得点: ${target.finalScore}点`);
-    renderAllPanels();
+  // 受験生記録の読み出し
+  function loadStudentRecords() {
+    const tbody = document.getElementById('student-list-body');
+    tbody.innerHTML = '';
+    let dataCount = 0;
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const storageKey = localStorage.key(i);
+      if (storageKey.startsWith('receipt_')) {
+        try {
+          const rawData = JSON.parse(localStorage.getItem(storageKey));
+          const p = rawData.payload;
+          
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${escapeHtml(p.receiptId)}</strong></td>
+            <td>${escapeHtml(p.studentClass)}</td>
+            <td>${escapeHtml(p.studentId)}</td>
+            <td>${escapeHtml(p.studentName)}</td>
+            <td><span style="color:var(--theme-blue); font-weight:bold;">${p.autoScore} 点</span></td>
+            <td>${escapeHtml(p.timestamp)}</td>
+            <td><span style="${p.metrics && p.metrics.leaveCount > 0 ? 'color:#dc2626; font-weight:bold;' : 'color:#64748b;'}">${p.metrics ? p.metrics.leaveCount : 0} 回</span></td>
+            <td>
+              <button class="btn-action" onclick="allowStudentReExam('${p.examId}', '${p.studentId}', '${p.studentName}')">再受験を許可する</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+          dataCount++;
+        } catch(e) {
+          console.error("データ解析失敗レシート:", storageKey, e);
+        }
+      }
+    }
+    
+    if (dataCount === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">現在、格納されている送信済みの受験データはありません。</td></tr>`;
+    }
   }
-}
 
-function downloadCustomCSV() {
-  const fClass = document.getElementById('filter-class').value;
-  const fExam = document.getElementById('filter-exam').value;
-  const fDate = document.getElementById('filter-date').value;
+  // 再受験の許可処理 (多重制限ロックキーのみ解除)
+  function allowStudentReExam(examId, studentId, studentName) {
+    const confirmMessage = `氏名: ${studentName} (学籍番号: ${studentId}) の再受験を許可しますか？\n\n【処理内容】\n生徒側の多重受験ブロック(制限)のみを解除します。\n※すでに提出された過去の自動採点データレシートは上書きされず管理画面に残ります。`;
+    
+    if (confirm(confirmMessage)) {
+      // index.html側でチェックしている受験制限レコードのキーを消去
+      const blockKey = `exam_rec_${examId}_${studentId}`;
+      
+      if(localStorage.getItem(blockKey)) {
+        localStorage.removeItem(blockKey);
+        alert(`処理成功:\n学籍番号: ${studentId} の多重受験防止ブロックを解除しました。\n生徒のブラウザで再度ログイン・試験開始が可能です。`);
+      } else {
+        alert("該当の学籍番号に対するブロック履歴がこのブラウザに見つかりませんでした（既に許可されているか、別のブラウザ環境で提出された可能性があります）。再受験枠として開放状態です。");
+      }
+      loadStudentRecords();
+    }
+  }
 
-  let csvContent = "受験管理番号,試験ID,クラス,学籍番号,氏名,自動採点スコア,最終確定スコア,離脱回数,提出時間\n";
-  
-  let filtered = dbRecords.filter(r => {
-    if(fClass !== "ALL" && r.class !== fClass) return false;
-    if(fExam !== "ALL" && r.examId !== fExam) return false;
-    if(fDate && r.date !== fDate) return false;
-    return true;
-  });
+  // セキュリティログの読み出し
+  function loadLoginLogs() {
+    const tbody = document.getElementById('log-list-body');
+    tbody.innerHTML = '';
+    
+    const logs = JSON.parse(localStorage.getItem('exam_admin_login_logs') || '[]').reverse(); // 新しい順に降順ソート
+    
+    if (logs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:20px;">ログインログ情報が存在しません。</td></tr>`;
+      return;
+    }
+    
+    logs.forEach(log => {
+      const tr = document.createElement('tr');
+      const isSuccess = log.status === '成功';
+      const statusSpan = isSuccess 
+        ? `<span class="status-success">成功</span>` 
+        : `<span class="status-fail">失敗</span>`;
+        
+      tr.innerHTML = `
+        <td>${escapeHtml(log.timestamp)}</td>
+        <td><strong>${escapeHtml(log.username)}</strong></td>
+        <td>${statusSpan}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
-  if(filtered.length === 0) return alert("該当するデータが存在しません。");
+  function escapeHtml(str) {
+    if(!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
-  filtered.forEach(r => {
-    csvContent += `${r.receiptId},${r.examId},${r.class},${r.id},${r.name},${r.autoScore},${r.finalScore},${r.leaveCount},${r.time}\n`;
-  });
-
-  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `ExamResult_${fClass}_${fDate || 'AllDays'}.csv`;
-  link.click();
-}
-
-window.onload = () => {
-  renderAllPanels();
-  toggleAutoRefresh();
-};
+  // 簡易セッション生存チェック
+  window.onload = function() {
+    if (sessionStorage.getItem('admin_session_auth') === 'true') {
+      document.getElementById('login-panel').style.display = 'none';
+      document.getElementById('dashboard-panel').classList.add('active');
+      loadStudentRecords();
+    }
+  };
 </script>
 </body>
 </html>
