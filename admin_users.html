@@ -49,7 +49,7 @@ function registerUser() {
 
   if(!user || !pass) { alert('ユーザー名とパスワードを両方入力してください。'); return; }
 
-  let users = JSON.parse(localStorage.getItem('EXAM_SYSTEM_USERS') || '[{"username":"admin","password":"admin123"}]');
+  let users = JSON.parse(localStorage.getItem('EXAM_SYSTEM_USERS') || '[{"username":"admin","password":"admin-password-ishikariminami-2026"}]');
   
   if(users.some(u => u.username === user)) {
     alert('指定されたユーザー名は既に登録されています。');
@@ -67,7 +67,7 @@ function registerUser() {
 }
 
 function loadUsers() {
-  const users = JSON.parse(localStorage.getItem('EXAM_SYSTEM_USERS') || '[{"username":"admin","password":"admin123"}]');
+  const users = JSON.parse(localStorage.getItem('EXAM_SYSTEM_USERS') || '[{"username":"admin","password":"admin-password-ishikariminami-2026"}]');
   const ul = document.getElementById('users-list');
   ul.innerHTML = '';
 
