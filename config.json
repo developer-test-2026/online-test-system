@@ -2,6 +2,7 @@
   "randomQuestion": true,
   "randomChoice": true,
   "timeLimit": 1800,
+  "autoSubmit": true,
   "disqualifyLimit": 3,
   "passScore": 60
 }
