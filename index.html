@@ -292,10 +292,10 @@ let leaveStart = null;
 let metrics = { leaveCount: 0, leaveTime: 0, violation: 0 };
 let leaveOverlayActive = false;
 let studentInfo = {};
-let activeExams = []; // 追加：実施中の試験リストを保持
+let activeExams = []; 
 
 // ============================================================
-// システム起動（修正：ローカルストレージから実施中テストを取得）
+// システム起動
 // ============================================================
 async function loadSystem() {
   try {
@@ -306,7 +306,7 @@ async function loadSystem() {
 
     let availableCount = 0;
     activeExams.forEach(e => {
-      if (e.status === 'active') {
+      if (e.status === 'active') { // 実施中のものだけ表示
         const opt = document.createElement('option');
         opt.value = e.settings.examId;
         opt.textContent = e.settings.examName;
@@ -319,7 +319,6 @@ async function loadSystem() {
       select.innerHTML = '<option value="">現在配信中の試験はありません</option>';
     }
 
-    // 解答中データの一時保存からの復元チェック
     checkAndRestoreProgress();
   } catch(e) {
     console.error(e);
@@ -327,14 +326,13 @@ async function loadSystem() {
   }
 }
 
-// 追加：テストが選択された時の処理
 function onExamSelect() {
   const examId = document.getElementById('exam-select').value;
   if(!examId) return;
   const selected = activeExams.find(e => e.settings.examId === examId);
   if(selected) {
     config = selected.settings;
-    questions = selected.questions || [];
+    questions = JSON.parse(JSON.stringify(selected.questions || [])); // ディープコピー
     document.documentElement.style.setProperty('--theme', config.themeColor || '#1565c0');
     document.getElementById('display-exam-name').innerText = config.examName || '試験';
     if(!config.showProgress) {
@@ -342,7 +340,6 @@ function onExamSelect() {
     } else {
       document.getElementById('progress-wrap').style.display = 'block';
     }
-    questionItems = questions.filter(q => q.type !== 'section');
   }
 }
 
@@ -356,12 +353,12 @@ function saveTempProgress() {
     userAnswers,
     currentIdx,
     timeLeft,
-    metrics
+    metrics,
+    questions // シャッフル状態も保存
   };
   localStorage.setItem(`exam_temp_progress_${config.examId || 'default'}`, JSON.stringify(progress));
 }
 
-// 管理者画面向けにリアルタイム状況を発信
 function broadcastLiveStatus() {
   if (!isExamActive) return;
   const liveData = {
@@ -380,7 +377,6 @@ function broadcastLiveStatus() {
   localStorage.setItem(`live_${config.examId}_${studentInfo.sid}`, JSON.stringify(liveData));
 }
 
-// 修正：複数のテストに対応するための復元処理
 function checkAndRestoreProgress() {
   for (let i = 0; i < localStorage.length; i++) {
      const key = localStorage.key(i);
@@ -391,15 +387,16 @@ function checkAndRestoreProgress() {
            const progress = JSON.parse(saved);
            if (confirm("未提出の試験回答データが見つかりました。データを復元して途中の状態から試験を再開しますか？")) {
               document.getElementById('exam-select').value = savedExamId;
-              onExamSelect(); // 設定を読み込む
+              onExamSelect(); 
               
               studentInfo = progress.studentInfo || {};
               userAnswers = progress.userAnswers || {};
               currentIdx = progress.currentIdx || 0;
               timeLeft = progress.timeLeft || 1800;
               metrics = progress.metrics || { leaveCount: 0, leaveTime: 0, violation: 0 };
+              if (progress.questions) questions = progress.questions;
+              questionItems = questions.filter(q => q.type !== 'section');
               
-              // ログインフォームに値を差し戻す
               if (studentInfo.grade) {
                 document.getElementById('grade-select').value = studentInfo.grade;
                 updateClassSelect();
@@ -411,12 +408,13 @@ function checkAndRestoreProgress() {
               isExamActive = true;
               document.getElementById('exam-header-bar').style.display = 'block';
               setupSecurityListeners();
-              startTimer();
+              if (config.timeLimit) startTimer();
+              else document.getElementById('info-timer').style.display = 'none';
               showCard('card-exam');
               renderQuestion();
-              return; // ひとつ見つけたら終了
+              return; 
            } else {
-              localStorage.removeItem(key); // 破棄
+              localStorage.removeItem(key); 
            }
         }
      }
@@ -441,7 +439,7 @@ function updateClassSelect() {
 }
 
 // ============================================================
-// 試験開始
+// 試験開始とシャッフルロジック
 // ============================================================
 function startExam() {
   const examId = document.getElementById('exam-select').value;
@@ -468,16 +466,42 @@ function startExam() {
 
   studentInfo = { grade, cls, sid, name };
 
+  // シャッフルロジック
   if(config.randomQuestion) {
     const sections = questions.filter(q => q.type === 'section');
     const qs = questions.filter(q => q.type !== 'section').sort(() => Math.random() - 0.5);
     questions = [...sections, ...qs];
-    questionItems = questions.filter(q => q.type !== 'section');
+  } else if (config.randomSectionQuestion) {
+    let newQs = [];
+    let currentSecQs = [];
+    questions.forEach(q => {
+      if (q.type === 'section') {
+        if (currentSecQs.length > 0) newQs.push(...currentSecQs.sort(() => Math.random() - 0.5));
+        currentSecQs = [];
+        newQs.push(q);
+      } else {
+        currentSecQs.push(q);
+      }
+    });
+    if (currentSecQs.length > 0) newQs.push(...currentSecQs.sort(() => Math.random() - 0.5));
+    questions = newQs;
   }
+
+  if (config.randomChoice) {
+    questions.forEach(q => {
+      if (q.type === 'single' || q.type === 'multiple') {
+        let opts = q.options.map((opt, idx) => ({ text: opt, oldIdx: idx }));
+        opts.sort(() => Math.random() - 0.5);
+        q.options = opts.map(o => o.text);
+        q.answer = q.answer.map(oldAnsIdx => opts.findIndex(o => o.oldIdx === oldAnsIdx));
+      }
+    });
+  }
+
+  questionItems = questions.filter(q => q.type !== 'section');
 
   isExamActive = true;
   currentIdx = 0;
-  timeLeft = config.timeLimit || 1800;
 
   document.getElementById('exam-header-bar').style.display = 'block';
 
@@ -486,7 +510,15 @@ function startExam() {
   }
 
   setupSecurityListeners();
-  startTimer();
+  
+  if(config.timeLimit) {
+    timeLeft = config.timeLimit;
+    document.getElementById('info-timer').style.display = 'block';
+    startTimer();
+  } else {
+    document.getElementById('info-timer').style.display = 'none'; // タイマー非表示
+  }
+  
   showCard('card-exam');
   renderQuestion();
   saveTempProgress(); 
@@ -532,7 +564,7 @@ function updateTimerDisplay() {
 }
 
 // ============================================================
-// 問題レンダリング（セクション対応・完全回答記述の追加対応）
+// 問題レンダリング
 // ============================================================
 function renderQuestion() {
   const q = questionItems[currentIdx];
@@ -719,7 +751,7 @@ function backToExamFromReview() {
 }
 
 // ============================================================
-// 最終提出（採点処理の追加とGASの削除）
+// 最終提出（完全回答記述のロジック含む）
 // ============================================================
 async function submitFinalAnswers() {
   isExamActive = false;
@@ -734,7 +766,7 @@ async function submitFinalAnswers() {
     const currentScore = (q.score !== undefined && q.score !== null && q.score !== '') ? Number(q.score) : 1;
     totalScore += currentScore;
     
-    // 【修正箇所】完全回答記述の採点ロジック
+    // 完全回答記述の採点ロジック
     if (q.type === 'perfect_text') {
       const ua = userAnswers[q.id] || [];
       const ansText = (ua[0] || '').trim();
@@ -742,7 +774,7 @@ async function submitFinalAnswers() {
       if (ansText !== '' && ansText === model) {
          autoScore += currentScore;
       }
-    } else if(q.type !== 'text') { // 通常の記述以外（単一、複数、○×）
+    } else if(q.type !== 'text') { 
       const ua = userAnswers[q.id] || [];
       const ok = ua.length === q.answer.length && ua.every(v => q.answer.includes(v));
       if(ok) autoScore += currentScore;
@@ -761,11 +793,9 @@ async function submitFinalAnswers() {
   localStorage.setItem(`receipt_${receiptId}`, JSON.stringify({ payload, questions: questionItems }));
   localStorage.setItem(`exam_rec_${config.examId}_${studentInfo.sid}`, receiptId);
 
-  // 送信完了時に不要なデータを削除
   localStorage.removeItem(`exam_temp_progress_${config.examId || 'default'}`);
   localStorage.removeItem(`live_${config.examId}_${studentInfo.sid}`); 
 
-  // 管理者画面の「受験者結果タブ」と連携するための保存処理
   const resultRecord = {
     id: receiptId,
     examId: config.examId,
@@ -876,6 +906,13 @@ function enterReviewMode() {
   const data = JSON.parse(item);
   const p = data.payload;
   const qList = data.questions;
+
+  // 管理者が回答を終了したテストは見直し不可とするブロック処理
+  const allExams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
+  const examDef = allExams.find(e => e.settings.examId === p.examId);
+  if (examDef && examDef.status !== 'active') {
+    return alert("この試験は管理者が回答を終了したため、現在見直しを行うことはできません。");
+  }
 
   document.getElementById('review-title').innerText = `結果: ${p.examName}`;
   document.getElementById('review-meta-info').innerHTML = `
