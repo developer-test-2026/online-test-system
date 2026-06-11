@@ -55,7 +55,7 @@
   table th { background: #f1f5f9; color: #475569; font-weight: bold; border-top: 1px solid #e2e8f0; }
   table tr:hover { background: #fafbfc; }
   
-  .btn-action { background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.15s; }
+  .btn-action { background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.15s; margin-right: 4px; }
   .btn-action:hover { background: #0369a1; }
   
   /* 状態表示ラベル */
@@ -86,11 +86,32 @@
   
   <div class="main-content">
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('tab-students', this)">受験者一覧・再受験管理</div>
+      <div class="tab active" onclick="switchTab('tab-live', this)">🔴 リアルタイム監視</div>
+      <div class="tab" onclick="switchTab('tab-students', this)">受験者一覧・再受験管理</div>
       <div class="tab" onclick="switchTab('tab-logs', this)">管理者ログインログ</div>
     </div>
     
-    <div id="tab-students" class="tab-panel active">
+    <div id="tab-live" class="tab-panel active">
+      <h2>試験中の生徒（リアルタイムステータス）</h2>
+      <p style="font-size:13px; color:#64748b; margin-top:-6px;">※3秒ごとに自動更新されます。タブ切替や画面離脱などの不正行為がリアルタイムに表示されます。</p>
+      <table>
+        <thead>
+          <tr>
+            <th>クラス</th>
+            <th>学籍番号</th>
+            <th>氏名</th>
+            <th>進捗（現在の問題）</th>
+            <th>残り時間</th>
+            <th>不正・離脱警告 🚨</th>
+          </tr>
+        </thead>
+        <tbody id="live-list-body">
+          <tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:30px;">現在、試験にログインしている生徒はいません。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div id="tab-students" class="tab-panel">
       <h2>提出された受験記録とリアルタイム制御</h2>
       <p style="font-size:13px; color:#64748b; margin-top:-6px;">※ブラウザの共通共有領域(LocalStorage)に保存されている提出レシートデータを展開しています。</p>
       <table>
@@ -107,7 +128,7 @@
           </tr>
         </thead>
         <tbody id="student-list-body">
-          </tbody>
+        </tbody>
       </table>
     </div>
     
@@ -123,7 +144,7 @@
           </tr>
         </thead>
         <tbody id="log-list-body">
-          </tbody>
+        </tbody>
       </table>
     </div>
   </div>
@@ -155,6 +176,7 @@
       document.getElementById('dashboard-panel').classList.add('active');
       
       // 初期データのロード
+      loadLiveStatus();
       loadStudentRecords();
     } else {
       // 失敗ログ記録
@@ -179,8 +201,69 @@
     clickTab.classList.add('active');
     document.getElementById(targetId).classList.add('active');
     
+    if (targetId === 'tab-live') loadLiveStatus();
     if (targetId === 'tab-students') loadStudentRecords();
     if (targetId === 'tab-logs') loadLoginLogs();
+  }
+
+  // リアルタイム監視データの読み出し (追加)
+  function loadLiveStatus() {
+    if (!document.getElementById('tab-live').classList.contains('active')) return;
+    
+    const tbody = document.getElementById('live-list-body');
+    tbody.innerHTML = '';
+    let dataCount = 0;
+    const now = Date.now();
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const storageKey = localStorage.key(i);
+      if (storageKey.startsWith('live_')) {
+        try {
+          const liveData = JSON.parse(localStorage.getItem(storageKey));
+          
+          // 最終書き込みから30秒以上経過していたら通信切断（ブラウザ落ち等）と判定
+          const isOffline = (now - liveData.lastUpdated) > 30000;
+          
+          const tr = document.createElement('tr');
+          if (isOffline) tr.style.opacity = '0.5';
+          
+          // 警告文言とスタイルの動的変更
+          let warningText = '正常';
+          let warningStyle = 'color:#16a34a; font-weight:bold; background:#f0fdf4; padding:4px 10px; border-radius:4px; border:1px solid #bbf7d0; font-size:12px;';
+          
+          if (liveData.leaveCount > 0 || liveData.violation > 0) {
+            warningText = `🚨 離脱:${liveData.leaveCount}回 (${liveData.leaveTime || 0}秒) / 警告:${liveData.violation || 0}回`;
+            warningStyle = 'color:#dc2626; font-weight:bold; background:#fef2f2; padding:4px 10px; border-radius:4px; border:1px solid #fecaca; font-size:12px;';
+          }
+          
+          if (isOffline) {
+            warningText += ' [切断/切替済]';
+          }
+          
+          // 時間のパース
+          const min = Math.floor(liveData.timeLeft / 60);
+          const sec = liveData.timeLeft % 60;
+          const timeStr = liveData.timeLeft >= 0 ? `${min}分${sec}秒` : '時間切れ';
+
+          tr.innerHTML = `
+            <td>${escapeHtml(liveData.studentClass)}</td>
+            <td>${escapeHtml(liveData.studentId)}</td>
+            <td><strong>${escapeHtml(liveData.studentName)}</strong></td>
+            <td>第 <span style="color:var(--theme-blue); font-weight:bold;">${liveData.currentQ}</span> / ${liveData.totalQ} 問</td>
+            <td>${timeStr}</td>
+            <td><span style="${warningStyle}">${warningText}</span></td>
+          `;
+          tbody.appendChild(tr);
+          dataCount++;
+        } catch(e) {
+          console.error("ライブデータパースエラー:", e);
+        }
+      }
+    }
+    
+    if (dataCount === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:30px;">現在、試験にログインしている生徒はいません。</td></tr>`;
+    }
   }
 
   // 受験生記録の読み出し
@@ -206,7 +289,8 @@
             <td>${escapeHtml(p.timestamp)}</td>
             <td><span style="${p.metrics && p.metrics.leaveCount > 0 ? 'color:#dc2626; font-weight:bold;' : 'color:#64748b;'}">${p.metrics ? p.metrics.leaveCount : 0} 回</span></td>
             <td>
-              <button class="btn-action" onclick="allowStudentReExam('${p.examId}', '${p.studentId}', '${p.studentName}')">再受験を許可する</button>
+              <button class="btn-action" onclick="allowStudentReExam('${p.examId}', '${p.studentId}', '${p.studentName}')">再受験を許可</button>
+              <button class="btn-action" style="background:#dc2626;" onclick="deleteStudentRecord('${storageKey}', '${p.studentName}', '${p.receiptId}')">データ削除</button>
             </td>
           `;
           tbody.appendChild(tr);
@@ -222,12 +306,22 @@
     }
   }
 
+  // 提出データの完全削除処理 (追加)
+  function deleteStudentRecord(storageKey, studentName, receiptId) {
+    const confirmMessage = `本当に ${studentName} の受験データを完全に削除しますか？\n\n【管理用レシート番号】\n${receiptId}\n\n※この操作を実行すると、自動採点スコアや解答データは完全に消去され元に戻せません。`;
+    
+    if (confirm(confirmMessage)) {
+      localStorage.removeItem(storageKey);
+      alert(`${studentName}（レシート番号: ${receiptId}）の記録を削除しました。`);
+      loadStudentRecords();
+    }
+  }
+
   // 再受験の許可処理 (多重制限ロックキーのみ解除)
   function allowStudentReExam(examId, studentId, studentName) {
     const confirmMessage = `氏名: ${studentName} (学籍番号: ${studentId}) の再受験を許可しますか？\n\n【処理内容】\n生徒側の多重受験ブロック(制限)のみを解除します。\n※すでに提出された過去の自動採点データレシートは上書きされず管理画面に残ります。`;
     
     if (confirm(confirmMessage)) {
-      // index.html側でチェックしている受験制限レコードのキーを消去
       const blockKey = `exam_rec_${examId}_${studentId}`;
       
       if(localStorage.getItem(blockKey)) {
@@ -273,11 +367,15 @@
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // 3秒間隔でリアルタイム監視テーブルを自動更新
+  setInterval(loadLiveStatus, 3000);
+
   // 簡易セッション生存チェック
   window.onload = function() {
     if (sessionStorage.getItem('admin_session_auth') === 'true') {
       document.getElementById('login-panel').style.display = 'none';
       document.getElementById('dashboard-panel').classList.add('active');
+      loadLiveStatus();
       loadStudentRecords();
     }
   };
