@@ -1,8 +1,105 @@
 {
-  "randomQuestion": true,
-  "randomChoice": true,
-  "timeLimit": 1800,
-  "autoSubmit": true,
-  "disqualifyLimit": 3,
-  "passScore": 60
+"system": {
+"name": "School Exam System",
+"version": "2.0.0",
+"maintenanceMode": false,
+"debugMode": false
+},
+
+"security": {
+"adminPassword": "CHANGE_ME",
+"enableAdminLogin": true,
+"sessionTimeoutMinutes": 120,
+"allowGuestAccess": false
+},
+
+"exam": {
+"defaultTimeLimit": 3600,
+"autoSubmit": true,
+"allowResume": true,
+"saveIntervalSeconds": 30,
+"allowReview": true,
+"showCorrectAnswersAfterSubmit": false,
+"randomQuestionOrder": false,
+"randomChoiceOrder": false,
+"passScore": 60,
+"maxChoiceCount": 20
+},
+
+"questionTypes": {
+"single": true,
+"multiple": true,
+"boolean": true,
+"text": true
+},
+
+"scoring": {
+"allowPartialScore": true,
+"manualGradingEnabled": true,
+"recalculateTotalAfterManualGrading": true,
+"defaultTextQuestionScore": 10
+},
+
+"review": {
+"enableResultHistory": true,
+"enableQuestionReview": true,
+"saveReviewDataLocally": true,
+"maxReviewHistory": 20
+},
+
+"storage": {
+"useLocalBackup": true,
+"localStoragePrefix": "exam_system",
+"autoBackupAnswers": true
+},
+
+"googleAppsScript": {
+"apiUrl": "PASTE_YOUR_WEBAPP_URL_HERE",
+"timeoutSeconds": 30,
+"retryCount": 3
+},
+
+"dashboard": {
+"autoRefresh": true,
+"refreshIntervalSeconds": 15,
+"showAverageScore": true,
+"showHighestScore": true,
+"showLowestScore": true,
+"showPassRate": true,
+"showQuestionStatistics": true
+},
+
+"csv": {
+"enableExport": true,
+"encoding": "UTF-8",
+"includeAnswerData": true,
+"includeManualScore": true,
+"includeReviewData": true
+},
+
+"editor": {
+"enableJsonImport": true,
+"enableJsonExport": true,
+"enableCsvImport": true,
+"enableCsvExport": true,
+"enablePreview": true,
+"enableDragAndDropSort": true,
+"defaultQuestionType": "single"
+},
+
+"ui": {
+"theme": "light",
+"primaryColor": "#1976d2",
+"showProgressBar": true,
+"showQuestionNumber": true,
+"showPointValue": true,
+"showTimer": true
+},
+
+"limits": {
+"maxTests": 1000,
+"maxQuestionsPerTest": 500,
+"maxTextAnswerLength": 10000,
+"maxChoicesPerQuestion": 20
+}
 }
