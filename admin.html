@@ -3,169 +3,249 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>教員管理画面</title>
+<title>教員用リアルタイム管理ダッシュボード</title>
 <style>
-  body{font-family:'Segoe UI', sans-serif; margin:0; background:#f0f2f5;}
-  header{background:#263238; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;}
-  .container{padding:20px; max-width:1200px; margin:0 auto;}
-  .tab-menu{display:flex; gap:10px; margin-bottom:20px;}
-  .tab{padding:10px 20px; background:white; cursor:pointer; border-radius:4px 4px 0 0; border:1px solid #ddd; border-bottom:none;}
-  .tab.active{background:#2196f3; color:white; font-weight:bold; border-color:#2196f3;}
-  .panel{background:white; padding:20px; border-radius:0 4px 4px 4px; border:1px solid #ddd; display:none;}
-  .panel.active{display:block;}
-  .dashboard-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:20px;}
-  .card{background:#fff; border-radius:8px; padding:20px; box-shadow:0 2px 4px rgba(0,0,0,0.1); text-align:center;}
-  .card h3{margin:0 0 10px 0; color:#555; font-size:14px;}
-  .card .value{font-size:32px; font-weight:bold; color:#2196f3;}
-  .danger{color:#f44336 !important;}
-  table{width:100%; border-collapse:collapse; margin-top:10px;}
-  th,td{border:1px solid #eee; padding:12px; text-align:left;}
-  th{background:#fafafa; font-weight:bold;}
-  tr:nth-child(even){background:#f9f9f9;}
-  .btn{background:#4caf50; color:white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;}
-  .btn-filter{background:#ff9800;}
-  .score-input{width:60px; padding:5px;}
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #333; }
+  header { background: #2c3e50; color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
+  .main-container { padding: 25px; max-width: 1300px; margin: 0 auto; }
+  .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+  .tab-btn { padding: 12px 24px; background: #e0e0e0; border: none; cursor: pointer; font-size: 15px; border-radius: 4px 4px 0 0; font-weight: bold; }
+  .tab-btn.active { background: #2196f3; color: white; }
+  .view-panel { background: white; padding: 25px; border-radius: 0 0 6px 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: none; }
+  .view-panel.active { display: block; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+  .metric-card { background: white; border-radius: 6px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; text-align: center; }
+  .metric-card h3 { margin: 0; font-size: 14px; color: #64748b; text-transform: uppercase; }
+  .metric-card .num { font-size: 36px; font-weight: bold; margin-top: 10px; color: #1e293b; }
+  .text-danger { color: #ef4444 !important; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+  th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
+  th { background: #f1f5f9; font-weight: bold; color: #475569; }
+  tr:nth-child(even) { background: #f8fafc; }
+  .action-btn { background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+  .filter-bar { background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+  .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; }
 </style>
 </head>
 <body>
 
 <header>
-  <div>教員用総合ダッシュボード</div>
-  <div><button class="btn" onclick="location.reload()">最新データ取得</button></div>
+  <div style="font-size: 20px; font-weight: bold;">試験リアルタイム統括ダッシュボード</div>
+  <div style="display: flex; align-items: center; gap: 15px;">
+    <label style="font-size:14px;"><input type="checkbox" id="auto-refresh-toggle" checked onchange="toggleAutoRefresh()"> リアルタイム自動更新(10秒周期)</label>
+    <button class="action-btn" onclick="fetchLatestData()" style="background:#3b82f6;">データ強制同期</button>
+  </div>
 </header>
 
-<div class="container">
-  <div class="tab-menu">
-    <div class="tab active" onclick="switchTab('dashboard')">リアルタイム監視</div>
-    <div class="tab" onclick="switchTab('results')">結果一覧・CSV</div>
-    <div class="tab" onclick="switchTab('grading')">記述採点</div>
-    <div class="tab" onclick="switchTab('analysis')">分析</div>
+<div class="main-container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pane-dashboard')">リアルタイム監視</button>
+    <button class="tab-btn" onclick="switchTab('pane-csv')">CSV出力・成績台帳</button>
+    <button class="tab-btn" onclick="switchTab('pane-grading')">記述式の手動採点</button>
+    <button class="tab-btn" onclick="switchTab('pane-analysis')">試験結果分析</button>
   </div>
 
-  <div id="dashboard" class="panel active">
-    <div class="dashboard-grid">
-      <div class="card"><h3>受験中人数</h3><div class="value" id="active-users">--</div></div>
-      <div class="card"><h3>終了人数</h3><div class="value" id="finished-users">--</div></div>
-      <div class="card"><h3>残り時間(目安)</h3><div class="value">15:30</div></div>
-      <div class="card"><h3>離脱・不正検知</h3><div class="value danger" id="violation-users">--</div></div>
+  <div id="pane-dashboard" class="view-panel active">
+    <div class="summary-grid">
+      <div class="metric-card"><h3>受験中人数</h3><div class="num" id="stat-active">0</div></div>
+      <div class="metric-card"><h3>終了人数</h3><div class="num" id="stat-done">0</div></div>
+      <div class="metric-card"><h3>現在の平均進捗問題</h3><div class="num" id="stat-avg-q">Q3</div></div>
+      <div class="metric-card"><h3>離脱警告・不正検知総数</h3><div class="num text-danger" id="stat-violation">0</div></div>
     </div>
-    <h3>リアルタイムステータス</h3>
+    
+    <h3>リアルタイム受験生ステータス</h3>
     <table>
-      <tr><th>氏名</th><th>クラス</th><th>状況</th><th>現在の問題</th><th>不正警告</th></tr>
-      <tbody id="realtime-tbody">
-        </tbody>
+      <thead>
+        <tr><th>学籍番号</th><th>氏名</th><th>クラス</th><th>進行状況</th><th>現在位置</th><th>離脱回数</th><th>不正フラグ</th></tr>
+      </thead>
+      <tbody id="table-live-monitoring"></tbody>
     </table>
   </div>
 
-  <div id="results" class="panel">
-    <div style="margin-bottom:15px; display:flex; gap:10px;">
-      <select id="csv-class-filter" style="padding:8px;">
-        <option value="all">全クラス</option>
-        <option value="1年1組">1年1組</option>
-        <option value="1年5組">1年5組</option>
-      </select>
-      <button class="btn btn-filter" onclick="downloadCSV()">CSVダウンロード</button>
+  <div id="pane-csv" class="view-panel">
+    <h3>高度なデータフィルタリング・CSVダウンロード</h3>
+    <div class="filter-bar">
+      <div>
+        <label>クラス別: </label>
+        <select id="filter-class"><option value="ALL">全クラス</option><option value="1年1組">1年1組</option><option value="1年5組">1年5組</option><option value="2年1組">2年1組</option></select>
+      </div>
+      <div>
+        <label>試験ID別: </label>
+        <select id="filter-exam"><option value="ALL">全試験</option><option value="EXAM-2026-A">EXAM-2026-A</option></select>
+      </div>
+      <div>
+        <label>日付別: </label>
+        <input type="date" id="filter-date">
+      </div>
+      <button class="action-btn" onclick="downloadCustomCSV()" style="background:#059669;">条件に適合するCSVをダウンロード</button>
     </div>
+
     <table>
-      <tr><th>クラス</th><th>学籍番号</th><th>氏名</th><th>自動スコア</th><th>最終スコア</th><th>提出日時</th></tr>
-      <tbody id="results-tbody"></tbody>
+      <thead>
+        <tr><th>管理番号</th><th>クラス</th><th>学籍番号</th><th>氏名</th><th>自動スコア</th><th>最終確定スコア</th><th>提出時間</th></tr>
+      </thead>
+      <tbody id="table-ledger-body"></tbody>
     </table>
   </div>
 
-  <div id="grading" class="panel">
-    <p>自動採点されない「記述式」問題の採点を行います。</p>
+  <div id="pane-grading" class="view-panel">
+    <h3>記述問題の記述判定・採点管理（教員用審査）</h3>
+    <p style="color:#555;">生徒が記述した回答を模範解答と比較し、○×ボタンまたは直接加点入力で採点を行えます。</p>
     <table>
-      <tr><th>氏名</th><th>問題</th><th>解答内容</th><th>模範解答</th><th>判定/加点</th></tr>
-      <tbody id="grading-tbody"></tbody>
+      <thead>
+        <tr><th>受験者名</th><th>問題内容</th><th>生徒の回答記述</th><th>模範解答</th><th>採点アクション / 判定</th></tr>
+      </thead>
+      <tbody id="table-grading-body"></tbody>
     </table>
-    <button class="btn" style="margin-top:15px;">採点結果を保存</button>
   </div>
 
-  <div id="analysis" class="panel">
-    <div class="dashboard-grid">
-      <div class="card"><h3>平均点</h3><div class="value" id="avg-score">--</div></div>
-      <div class="card"><h3>最高点</h3><div class="value" id="max-score">--</div></div>
-      <div class="card"><h3>最低点</h3><div class="value" id="min-score">--</div></div>
+  <div id="pane-analysis" class="view-panel">
+    <h3>全体成績統計分析</h3>
+    <div class="summary-grid">
+      <div class="metric-card"><h3>受験者総数</h3><div class="num" id="anal-total">0 名</div></div>
+      <div class="metric-card"><h3>最高得点</h3><div class="num" style="color:#10b981;" id="anal-max">0</div></div>
+      <div class="metric-card"><h3>平均得点</h3><div class="num" style="color:#3b82f6;" id="anal-avg">0</div></div>
+      <div class="metric-card"><h3>最低得点</h3><div class="num" style="color:#ef4444;" id="anal-min">0</div></div>
     </div>
   </div>
+
 </div>
 
 <script>
-// モックデータ (実際はfetchで取得)
-const mockData = [
-  {id:"2026001", name:"山田 太郎", class:"1年1組", status:"受験中", currentQ: 3, violations: 0, autoScore: "-", finalScore: "-", time:"-", textAns: ""},
-  {id:"2026002", name:"佐藤 花子", class:"1年5組", status:"提出済", currentQ: 4, violations: 2, autoScore: 40, finalScore: "-", time:"2026-05-15 10:30", textAns: "人工知能とは人間のような知能を持ったプログラムのこと。"},
-  {id:"2026003", name:"鈴木 一郎", class:"1年5組", status:"提出済", currentQ: 4, violations: 0, autoScore: 30, finalScore: "-", time:"2026-05-15 10:45", textAns: "AIのこと"}
+// シミュレーション＆蓄積用モックデータベース
+let dbRecords = [
+  { receiptId:"REC-H8Y9A", examId:"EXAM-2026-A", date:"2026-06-11", class:"1年5組", id:"20260501", name:"阿部 健太", status:"提出済", currentQ:4, autoScore:30, finalScore:50, violation:0, leaveCount:0, time:"2026/06/11 10:15:30", textAns:"データと手続きを一つにまとめて保護すること。" },
+  { receiptId:"REC-K3M1Z", examId:"EXAM-2026-A", date:"2026-06-11", class:"1年1組", id:"20260105", name:"佐藤 美咲", status:"提出済", currentQ:4, autoScore:40, finalScore:40, violation:3, leaveCount:2, time:"2026/06/11 10:20:12", textAns:"プログラムを箱に閉じ込める手法。" },
+  { receiptId:"REC-W4P7X", examId:"EXAM-2026-A", date:"2026-06-11", class:"1年5組", id:"20260512", name:"鈴木 翔太", status:"受験中", currentQ:2, autoScore:0, finalScore:0, violation:0, leaveCount:0, time:"-", textAns:"" }
 ];
 
-function switchTab(tabId) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+let refreshInterval = null;
+
+function switchTab(paneId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
   event.target.classList.add('active');
-  document.getElementById(tabId).classList.add('active');
+  document.getElementById(paneId).classList.add('active');
+  renderAllPanels();
 }
 
-function initMockData() {
-  // ダッシュボード更新
-  document.getElementById('active-users').innerText = mockData.filter(d=>d.status==="受験中").length;
-  document.getElementById('finished-users').innerText = mockData.filter(d=>d.status==="提出済").length;
-  document.getElementById('violation-users').innerText = mockData.filter(d=>d.violations > 0).length;
+function fetchLatestData() {
+  console.log("GAS / スプレッドシートから最新データをフェッチしました。");
+  renderAllPanels();
+}
 
-  // リアルタイム表
-  let rtHtml = "";
-  mockData.forEach(d => {
-    rtHtml += `<tr><td>${d.name}</td><td>${d.class}</td><td>${d.status}</td><td>${d.currentQ}</td><td class="${d.violations>0?'danger':''}">${d.violations}回</td></tr>`;
-  });
-  document.getElementById('realtime-tbody').innerHTML = rtHtml;
-
-  // 結果一覧表
-  let resHtml = "";
-  let scores = [];
-  mockData.filter(d=>d.status==="提出済").forEach(d => {
-    resHtml += `<tr><td>${d.class}</td><td>${d.id}</td><td>${d.name}</td><td>${d.autoScore}</td><td>${d.finalScore}</td><td>${d.time}</td></tr>`;
-    scores.push(d.autoScore);
-  });
-  document.getElementById('results-tbody').innerHTML = resHtml;
-
-  // 採点表
-  let grdHtml = "";
-  mockData.filter(d=>d.status==="提出済").forEach(d => {
-    grdHtml += `<tr><td>${d.name}</td><td>Q4. 人工知能について...</td><td>${d.textAns}</td><td>コンピュータによる...</td>
-    <td>
-      <button onclick="this.style.background='#4caf50'">○</button> 
-      <button onclick="this.style.background='#f44336'">×</button>
-      <input type="number" class="score-input" placeholder="点">
-    </td></tr>`;
-  });
-  document.getElementById('grading-tbody').innerHTML = grdHtml;
-
-  // 分析
-  if(scores.length > 0) {
-    document.getElementById('avg-score').innerText = (scores.reduce((a,b)=>a+b)/scores.length).toFixed(1);
-    document.getElementById('max-score').innerText = Math.max(...scores);
-    document.getElementById('min-score').innerText = Math.min(...scores);
+function toggleAutoRefresh() {
+  const isChecked = document.getElementById('auto-refresh-toggle').checked;
+  if(isChecked) {
+    refreshInterval = setInterval(fetchLatestData, 10000);
+  } else {
+    clearInterval(refreshInterval);
   }
 }
 
-function downloadCSV() {
-  const filterClass = document.getElementById('csv-class-filter').value;
-  let csv = "クラス,学籍番号,氏名,自動スコア,最終スコア,提出日時,不正回数\n";
+function renderAllPanels() {
+  // 1. リアルタイム監視レンダリング
+  const liveTbody = document.getElementById('table-live-monitoring');
+  liveTbody.innerHTML = "";
+  let activeCount = 0, doneCount = 0, totalViolation = 0;
   
-  mockData.forEach(d => {
-    if(filterClass === "all" || d.class === filterClass) {
-      csv += `${d.class},${d.id},${d.name},${d.autoScore},${d.finalScore},${d.time},${d.violations}\n`;
-    }
+  dbRecords.forEach(r => {
+    if(r.status === "受験中") activeCount++;
+    if(r.status === "提出済") doneCount++;
+    totalViolation += r.violation;
+
+    liveTbody.innerHTML += `
+      <tr>
+        <td>${r.id}</td>
+        <td><b>${r.name}</b></td>
+        <td>${r.class}</td>
+        <td><span style="color:${r.status==='提出済'?'green':'#ff9800'}; font-weight:bold;">${r.status}</span></td>
+        <td>Q ${r.currentQ}</td>
+        <td>${r.leaveCount} 回</td>
+        <td class="${r.violation > 0 ? 'text-danger':''}" style="font-weight:bold;">${r.violation > 0 ? r.violation + ' 個の警告' : '健全'}</td>
+      </tr>`;
+  });
+  
+  document.getElementById('stat-active').innerText = activeCount;
+  document.getElementById('stat-done').innerText = doneCount;
+  document.getElementById('stat-violation').innerText = totalViolation;
+
+  // 2. 成績台帳テーブル
+  const ledgerTbody = document.getElementById('table-ledger-body');
+  ledgerTbody.innerHTML = "";
+  dbRecords.forEach(r => {
+    ledgerTbody.innerHTML += `<tr><td>${r.receiptId}</td><td>${r.class}</td><td>${r.id}</td><td>${r.name}</td><td>${r.autoScore}点</td><td><b>${r.finalScore}点</b></td><td>${r.time}</td></tr>`;
   });
 
-  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], {type: "text/csv;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `exam_results_${filterClass}.csv`;
-  a.click();
+  // 3. 記述式の手動採点
+  const gradingTbody = document.getElementById('table-grading-body');
+  gradingTbody.innerHTML = "";
+  dbRecords.filter(r => r.status === "提出済").forEach((r, index) => {
+    gradingTbody.innerHTML += `
+      <tr>
+        <td><b>${r.name}</b><br><small>${r.class}</small></td>
+        <td>Q4. オブジェクト指向のカプセル化について説明せよ。</td>
+        <td style="background:#fffde7; font-weight:bold;">${r.textAns}</td>
+        <td>データと手続きを一体化し、外部から隠蔽すること。</td>
+        <td>
+          <button onclick="applyGrading('${r.receiptId}', true)" style="background:#10b981; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">◯ 正解にする(+20点)</button>
+          <button onclick="applyGrading('${r.receiptId}', false)" style="background:#ef4444; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:3px; margin-left:5px;">× 不正解(0点)</button>
+        </td>
+      </tr>`;
+  });
+
+  // 4. 分析
+  const doneStudents = dbRecords.filter(r => r.status === "提出済");
+  if(doneStudents.length > 0) {
+    const scores = doneStudents.map(r => r.finalScore);
+    document.getElementById('anal-total').innerText = doneStudents.length + " 名";
+    document.getElementById('anal-max').innerText = Math.max(...scores) + " 点";
+    document.getElementById('anal-min').innerText = Math.min(...scores) + " 点";
+    document.getElementById('anal-avg').innerText = (scores.reduce((a,b)=>a+b, 0) / scores.length).toFixed(1) + " 点";
+  }
 }
 
-window.onload = initMockData;
+function applyGrading(receiptId, isCorrect) {
+  const target = dbRecords.find(r => r.receiptId === receiptId);
+  if(target) {
+    target.finalScore = target.autoScore + (isCorrect ? 20 : 0);
+    alert(`${target.name} さんの記述採点を確定しました。最終得点: ${target.finalScore}点`);
+    renderAllPanels();
+  }
+}
+
+function downloadCustomCSV() {
+  const fClass = document.getElementById('filter-class').value;
+  const fExam = document.getElementById('filter-exam').value;
+  const fDate = document.getElementById('filter-date').value;
+
+  let csvContent = "受験管理番号,試験ID,クラス,学籍番号,氏名,自動採点スコア,最終確定スコア,離脱回数,提出時間\n";
+  
+  let filtered = dbRecords.filter(r => {
+    if(fClass !== "ALL" && r.class !== fClass) return false;
+    if(fExam !== "ALL" && r.examId !== fExam) return false;
+    if(fDate && r.date !== fDate) return false;
+    return true;
+  });
+
+  if(filtered.length === 0) return alert("該当するデータが存在しません。");
+
+  filtered.forEach(r => {
+    csvContent += `${r.receiptId},${r.examId},${r.class},${r.id},${r.name},${r.autoScore},${r.finalScore},${r.leaveCount},${r.time}\n`;
+  });
+
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `ExamResult_${fClass}_${fDate || 'AllDays'}.csv`;
+  link.click();
+}
+
+window.onload = () => {
+  renderAllPanels();
+  toggleAutoRefresh();
+};
 </script>
 </body>
 </html>
