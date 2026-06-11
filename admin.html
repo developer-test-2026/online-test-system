@@ -33,6 +33,8 @@ th { background: #f8fafc; font-weight: bold; }
 .stat-value { font-size: 24px; font-weight: bold; color: var(--accent); }
 .filter-area { display: flex; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;}
 .filter-col { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
+/* 1画面に収まるようグラフエリアを制限 */
+.chart-container { max-height: 180px; position: relative; width: 100%; }
 </style>
 </head>
 <body>
@@ -49,6 +51,7 @@ th { background: #f8fafc; font-weight: bold; }
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h1 style="margin:0; color:var(--accent);">⚙ 試験管理総合ダッシュボード</h1>
       <div>
+        <button class="btn btn-outline" onclick="openSyncModal()">💾 全データ同期</button>
         <button class="btn btn-outline" onclick="openAccountModal()">🔑 ID/PW変更</button>
         <a href="admin_users.html" target="_blank" class="btn btn-primary">👤 管理者追加</a>
         <button class="btn btn-danger" onclick="location.reload()">ログアウト</button>
@@ -93,10 +96,12 @@ th { background: #f8fafc; font-weight: bold; }
           <div class="stat-box"><div>最高点</div><div class="stat-value" id="stat-max">0</div></div>
           <div class="stat-box"><div>最低点</div><div class="stat-value" id="stat-min">0</div></div>
         </div>
-        <div style="display:flex; gap:20px; margin-bottom:20px;">
-          <div style="flex:1; background:#f8fafc; padding:15px; border-radius:8px;">
-            <h4 style="margin-top:0;">📈 得点分布</h4>
-            <canvas id="scoreChart" height="200"></canvas>
+        <div style="display:flex; gap:20px; margin-bottom:20px; align-items: stretch;">
+          <div style="flex:1; background:#f8fafc; padding:15px; border-radius:8px; max-height:260px;">
+            <h4 style="margin-top:0; margin-bottom:10px;">📈 得点分布</h4>
+            <div class="chart-container">
+              <canvas id="scoreChart"></canvas>
+            </div>
           </div>
           <div style="flex:1; background:#f8fafc; padding:15px; border-radius:8px;">
             <h4 style="margin-top:0;">🚨 問題別分析</h4>
@@ -110,7 +115,7 @@ th { background: #f8fafc; font-weight: bold; }
         <thead>
           <tr>
             <th>試験名</th><th>クラス</th><th>学籍番号</th><th>氏名</th>
-            <th>得点 / 満点</th><th>送信日時</th><th>不正(離脱回数等)</th><th>操作</th>
+            <th>得点 / 満点</th><th>送信日時</th><th>不正回数 (離脱等)</th><th>操作</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -139,6 +144,21 @@ th { background: #f8fafc; font-weight: bold; }
   </div>
 </div>
 
+<div class="modal-overlay" id="sync-modal">
+  <div class="modal-box" style="max-width:500px;">
+    <h3>💾 全データ同期 (他端末とのバックアップ・復元)</h3>
+    <p style="font-size:12px; color:#64748b;">サーバーを介さないため、他端末へデータを移す際は以下のテキストをコピーして移行先で貼り付けてください。</p>
+    <div class="form-group">
+      <label>同期データコード</label>
+      <textarea id="sync-data-text" style="height:150px; font-family:monospace; font-size:11px; padding:8px; border:1px solid var(--border); border-radius:4px;" onclick="this.select()"></textarea>
+    </div>
+    <div style="text-align:right; margin-top:20px;">
+      <button class="btn btn-outline" onclick="closeSyncModal()">閉じる</button>
+      <button class="btn btn-success" onclick="importSyncData()">このコードからデータを復元</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="account-modal">
   <div class="modal-box" style="max-width:400px;">
     <h3>🔑 ユーザー名・パスワードの変更</h3>
@@ -154,8 +174,7 @@ th { background: #f8fafc; font-weight: bold; }
 </div>
 
 <div class="modal-overlay" id="detail-modal">
-  <div class="modal-box" id="detail-modal-content">
-    </div>
+  <div class="modal-box" id="detail-modal-content"></div>
 </div>
 
 <script>
@@ -194,8 +213,47 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(tabId).style.display = 'block';
-  event.target.classList.add('active');
+  if(event && event.target) event.target.classList.add('active');
   if(tabId === 'results-tab' && filteredResultsData.length === 0) applyFilter();
+}
+
+/* =====================================================================
+   端末間同期データ管理機能
+===================================================================== */
+function openSyncModal() {
+  const syncObj = {
+    exams: JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]'),
+    results: JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]'),
+    logs: JSON.parse(localStorage.getItem('EXAM_SYSTEM_LOGS') || '[]'),
+    receipts: {}
+  };
+  for(let i=0; i<localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if(key && key.startsWith('receipt_')) {
+      syncObj.receipts[key] = localStorage.getItem(key);
+    }
+  }
+  document.getElementById('sync-data-text').value = btoa(unescape(encodeURIComponent(JSON.stringify(syncObj))));
+  document.getElementById('sync-modal').classList.add('show');
+}
+function closeSyncModal() { document.getElementById('sync-modal').classList.remove('show'); }
+function importSyncData() {
+  const raw = document.getElementById('sync-data-text').value.trim();
+  if(!raw) return alert("同期コードを入力してください。");
+  if(!confirm("現在の端末のデータが上書きされます。よろしいですか？")) return;
+  try {
+    const parsed = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if(parsed.exams) localStorage.setItem('EXAM_SYSTEM_EXAMS', JSON.stringify(parsed.exams));
+    if(parsed.results) localStorage.setItem('EXAM_SYSTEM_RESULTS', JSON.stringify(parsed.results));
+    if(parsed.logs) localStorage.setItem('EXAM_SYSTEM_LOGS', JSON.stringify(parsed.logs));
+    if(parsed.receipts) {
+      Object.keys(parsed.receipts).forEach(k => localStorage.setItem(k, parsed.receipts[k]));
+    }
+    alert("同期データを正常に復元しました。");
+    location.reload();
+  } catch(e) {
+    alert("不適切な同期コードです。正しくコピーされているかご確認ください。");
+  }
 }
 
 /* =====================================================================
@@ -237,8 +295,8 @@ function loadExams() {
     tr.innerHTML = `
       <td><b>${e.settings.examId}</b></td>
       <td>${e.settings.examName}</td>
-      <td>${e.settings.timeLimit ? e.settings.timeLimit + ' 秒' : '無制限'}</td>
-      <td style="color:${isAct ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${isAct ? '実施中' : '回答終了'}</td>
+      <td>${e.settings.timeLimit ? e.settings.timeLimit + ' 秒' : '無制限 (タイマー非表示)'}</td>
+      <td style="color:${isAct ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${isAct ? '実施中' : '回答終了 (過去の点数閲覧ロック中)'}</td>
       <td>
         ${isAct ? `<button class="btn btn-danger" onclick="toggleExamStatus('${e.settings.examId}', 'suspended')">回答を終了</button>` 
                 : `<button class="btn btn-success" onclick="toggleExamStatus('${e.settings.examId}', 'active')">再開</button>`}
@@ -266,7 +324,7 @@ function deleteExam(examId) {
 }
 
 /* =====================================================================
-   分析・成績一覧・手動採点
+   分析・成績一覧
 ===================================================================== */
 function initFilters() {
   const results = JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]');
@@ -295,12 +353,16 @@ function applyFilter() {
     return exMatch && clMatch;
   });
 
-  // テーブル描画
   const tbody = document.querySelector('#results-table tbody');
   tbody.innerHTML = '';
   filteredResultsData.forEach(r => {
     const m = r.metrics || {};
-    const vio = m.leaveCount > 0 ? `<span style="color:red;">離脱${m.leaveCount}回(${m.leaveTime}秒)</span>` : 'なし';
+    // 不正回数（離脱回数と違反回数）を個別に詳細表示
+    const totalViolations = (m.leaveCount || 0) + (m.violation || 0);
+    const vio = totalViolations > 0 
+      ? `<span style="color:red; font-weight:bold;">計 ${totalViolations} 回</span> <span style="font-size:12px;color:#64748b;">(画面離脱:${m.leaveCount||0}回計${m.leaveTime||0}秒 / 操作違反:${m.violation||0}回)</span>` 
+      : '<span style="color:var(--success);">なし (0回)</span>';
+      
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${r.examName}</td><td>${r.studentClass}</td><td>${r.studentId}</td><td>${r.studentName}</td>
@@ -323,7 +385,7 @@ function updateAnalysis() {
   panel.style.display = 'block';
 
   let total = 0, max = -1, min = 99999;
-  let qStats = {}; // { qId: { correct: 0, text: "" } }
+  let qStats = {};
 
   filteredResultsData.forEach(r => {
     total += r.score;
@@ -341,7 +403,6 @@ function updateAnalysis() {
         if(payload.manualScores && payload.manualScores[q.id] !== undefined) {
            earned = Number(payload.manualScores[q.id]);
         } else {
-           // 簡易判定 (自動採点基準)
            if(q.type === 'perfect_text') {
              const ansText = (payload.answers[q.id] && payload.answers[q.id][0] || '').trim();
              const model = (q.answer[0] || '').trim();
@@ -369,10 +430,9 @@ function updateAnalysis() {
     if(rate < worstQ.rate) worstQ = { rate, text: s.text };
   });
 
-  document.getElementById('stat-best-q').innerText = bestQ.text ? `${bestQ.text} (${(bestQ.rate*100).toFixed(1)}%)` : '--';
-  document.getElementById('stat-worst-q').innerText = worstQ.text ? `${worstQ.text} (${(worstQ.rate*100).toFixed(1)}%)` : '--';
+  document.getElementById('stat-best-q').innerText = bestQ.text ? `${bestQ.text} (${(bestQ.rate*100).toFixed(1)}% 正解)` : '--';
+  document.getElementById('stat-worst-q').innerText = worstQ.text ? `${worstQ.text} (${((1 - worstQ.rate)*100).toFixed(1)}% 不正解)` : '--';
 
-  // グラフ描画
   const scores = filteredResultsData.map(r => r.score);
   const binCount = 5;
   const maxScore = Math.max(...filteredResultsData.map(r => r.totalScore), 100);
@@ -398,13 +458,17 @@ function updateAnalysis() {
       labels: labels,
       datasets: [{ label: '人数', data: bins, backgroundColor: '#4f46e5', borderRadius: 4 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
+    }
   });
 }
 
 function exportCSV() {
   if(filteredResultsData.length === 0) return alert('データがありません');
-  let csv = "試験名,クラス,学籍番号,氏名,得点,満点,提出日時,離脱回数,離脱時間(秒),違反回数\n";
+  let csv = "試験名,クラス,学籍番号,氏名,得点,満点,提出日時,画面離脱回数,離脱時間(秒),操作違反回数\n";
   filteredResultsData.forEach(r => {
     const m = r.metrics || {};
     csv += `"${r.examName}","${r.studentClass}","${r.studentId}","${r.studentName}",${r.score},${r.totalScore},"${r.timestamp}",${m.leaveCount||0},${m.leaveTime||0},${m.violation||0}\n`;
@@ -423,7 +487,6 @@ function allowReExam(resultId) {
   localStorage.setItem('EXAM_SYSTEM_RESULTS', JSON.stringify(results));
   localStorage.removeItem('receipt_' + resultId);
   
-  // exam_recキーの削除 (sidとexamIdが必要だが、results配列から復元するより安全な全走査を行う)
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('exam_rec_') && localStorage.getItem(key) === resultId) {
@@ -435,7 +498,7 @@ function allowReExam(resultId) {
 }
 
 /* =====================================================================
-   個別解答・手動採点機能
+   個別解答・リアルタイム自動手動採点機能（勝手に保存対応）
 ===================================================================== */
 function openDetailModal(receiptId) {
   const dataStr = localStorage.getItem('receipt_' + receiptId);
@@ -452,7 +515,7 @@ function openDetailModal(receiptId) {
     </div>
     <div style="background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:20px; font-size:14px;">
       <b>受験者:</b> ${p.studentClass} ${p.studentId} ${p.studentName}<br>
-      <b>自動スコア:</b> ${p.autoScore} 点 | <b>最終スコア(手動反映済):</b> <span id="modal-final-score" style="font-size:18px; color:var(--accent); font-weight:bold;">${p.finalScore !== undefined ? p.finalScore : p.autoScore}</span> 点<br>
+      <b>自動スコア:</b> ${p.autoScore} 点 | <b>最終スコア (自動保存済):</b> <span id="modal-final-score" style="font-size:18px; color:var(--accent); font-weight:bold;">${p.finalScore !== undefined ? p.finalScore : p.autoScore}</span> 点<br>
       <b>提出日時:</b> ${p.timestamp}
     </div>
     <div id="manual-score-container" data-receipt="${receiptId}">
@@ -474,7 +537,6 @@ function openDetailModal(receiptId) {
       if(ua.length === q.answer.length && ua.every(v => q.answer.includes(v))) earned = qScore;
     }
     
-    // 手動で設定済みならそれを優先
     if(p.manualScores[q.id] !== undefined) earned = Number(p.manualScores[q.id]);
 
     html += `
@@ -485,26 +547,29 @@ function openDetailModal(receiptId) {
           <b>模範解答:</b> ${correctStr}
         </div>
         <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; align-items:center; gap:10px;">
-          <label style="font-size:13px; font-weight:bold;">この問題の獲得点数:</label>
-          <input type="number" class="manual-score-input" data-qid="${q.id}" value="${earned}" min="0" max="${qScore}" style="width:60px; padding:6px; border:1px solid #cbd5e1; border-radius:4px; text-align:center;">
-          <span style="font-size:12px; color:#64748b;">(自動判定や前回の設定が入力されています。変更可能です)</span>
+          <label style="font-size:13px; font-weight:bold;">獲得点数設定:</label>
+          <input type="number" class="manual-score-input" data-qid="${q.id}" value="${earned}" min="0" max="${qScore}" 
+                 style="width:60px; padding:6px; border:1px solid #cbd5e1; border-radius:4px; text-align:center;"
+                 oninput="autoSaveManualScore('${receiptId}')">
+          <span style="font-size:12px; color:#64748b;">(値を変更するとリアルタイムに自動保存されます)</span>
         </div>
       </div>
     `;
   });
 
-  html += `
-    </div>
-    <button class="btn btn-success" style="width:100%; padding:14px; font-size:16px;" onclick="saveManualScores('${receiptId}')">採点結果を保存してスコアを更新</button>
-  `;
+  html += `</div>`;
 
   document.getElementById('detail-modal-content').innerHTML = html;
   document.getElementById('detail-modal').classList.add('show');
 }
 
-function closeDetailModal() { document.getElementById('detail-modal').classList.remove('show'); }
+function closeDetailModal() { 
+  document.getElementById('detail-modal').classList.remove('show'); 
+  applyFilter(); // 閉じるときに最新データを一覧とグラフに最反映
+}
 
-function saveManualScores(receiptId) {
+/* 点数変更時に勝手に保存するリアルタイム同期処理 */
+function autoSaveManualScore(receiptId) {
   const dataStr = localStorage.getItem('receipt_' + receiptId);
   if(!dataStr) return;
   const data = JSON.parse(dataStr);
@@ -524,16 +589,12 @@ function saveManualScores(receiptId) {
   localStorage.setItem('receipt_' + receiptId, JSON.stringify(data));
   document.getElementById('modal-final-score').innerText = newFinalScore;
 
-  // RESULTS配列も更新
   let results = JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]');
   const idx = results.findIndex(r => r.id === receiptId);
   if(idx !== -1) {
     results[idx].score = newFinalScore;
     localStorage.setItem('EXAM_SYSTEM_RESULTS', JSON.stringify(results));
   }
-
-  alert("採点結果を保存しました。");
-  applyFilter(); // 一覧とグラフを再描画
 }
 
 /* =====================================================================
