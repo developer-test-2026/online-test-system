@@ -25,6 +25,8 @@
   .action-btn { background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
   .filter-bar { background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
   .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; }
+  .delete-btn { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+  .delete-btn:hover { background: #dc2626; }
 </style>
 </head>
 <body>
@@ -83,7 +85,7 @@
 
     <table>
       <thead>
-        <tr><th>管理番号</th><th>クラス</th><th>学籍番号</th><th>氏名</th><th>自動スコア</th><th>最終確定スコア</th><th>提出時間</th></tr>
+        <tr><th>管理番号</th><th>クラス</th><th>学籍番号</th><th>氏名</th><th>自動スコア</th><th>最終確定スコア</th><th>提出時間</th><th>管理アクション</th></tr>
       </thead>
       <tbody id="table-ledger-body"></tbody>
     </table>
@@ -145,7 +147,7 @@ function toggleAutoRefresh() {
 }
 
 function renderAllPanels() {
-  // 1. リアルタイム監視レンダリング
+  // 1. リアルタイム監視
   const liveTbody = document.getElementById('table-live-monitoring');
   liveTbody.innerHTML = "";
   let activeCount = 0, doneCount = 0, totalViolation = 0;
@@ -171,11 +173,23 @@ function renderAllPanels() {
   document.getElementById('stat-done').innerText = doneCount;
   document.getElementById('stat-violation').innerText = totalViolation;
 
-  // 2. 成績台帳テーブル
+  // 2. 成績台帳テーブル（削除・再受験許可アクションを追加）
   const ledgerTbody = document.getElementById('table-ledger-body');
   ledgerTbody.innerHTML = "";
   dbRecords.forEach(r => {
-    ledgerTbody.innerHTML += `<tr><td>${r.receiptId}</td><td>${r.class}</td><td>${r.id}</td><td>${r.name}</td><td>${r.autoScore}点</td><td><b>${r.finalScore}点</b></td><td>${r.time}</td></tr>`;
+    ledgerTbody.innerHTML += `
+      <tr>
+        <td>${r.receiptId}</td>
+        <td>${r.class}</td>
+        <td>${r.id}</td>
+        <td>${r.name}</td>
+        <td>${r.autoScore}点</td>
+        <td><b>${r.finalScore}点</b></td>
+        <td>${r.time}</td>
+        <td>
+          <button class="delete-btn" onclick="deleteRecord('${r.receiptId}', '${r.name}')">データ削除 (再受験許可)</button>
+        </td>
+      </tr>`;
   });
 
   // 3. 記述式の手動採点
@@ -203,6 +217,23 @@ function renderAllPanels() {
     document.getElementById('anal-max').innerText = Math.max(...scores) + " 点";
     document.getElementById('anal-min').innerText = Math.min(...scores) + " 点";
     document.getElementById('anal-avg').innerText = (scores.reduce((a,b)=>a+b, 0) / scores.length).toFixed(1) + " 点";
+  } else {
+    document.getElementById('anal-total').innerText = "0 名";
+    document.getElementById('anal-max').innerText = "0 点";
+    document.getElementById('anal-min').innerText = "0 点";
+    document.getElementById('anal-avg').innerText = "0 点";
+  }
+}
+
+// 【機能追加】管理者側でレコードを削除し、生徒の再受験を可能にする処理
+function deleteRecord(receiptId, studentName) {
+  if(confirm(`【警告】${studentName} さんの受験データ (${receiptId}) をダッシュボードおよびシステムから削除しますか？\nこの操作を行うと生徒は同一の学籍番号で再受験可能になります。`)) {
+    
+    // 画面モックDBからの削除ロジック
+    dbRecords = dbRecords.filter(r => r.receiptId !== receiptId);
+    
+    alert(`${studentName} さんのデータを削除しました。\n※実際のGAS運用環境では、このタイミングで連動してGoogleスプレッドシートの該当行を削除するAPIを叩くか、直接スプレッドシート側から行削除を行ってください。`);
+    renderAllPanels();
   }
 }
 
