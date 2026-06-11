@@ -6,289 +6,179 @@
 <style>
 body{margin:0;font-family:sans-serif;background:#f5f7fa;color:#333;}
 .header{background:#ffebee;color:#c62828;text-align:center;padding:10px;font-weight:bold;}
-.container{max-width:800px;margin:20px auto;padding:20px;}
-.card{background:white;padding:30px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:20px;}
-input, select{width:100%;padding:10px;margin:10px 0;font-size:16px;box-sizing:border-box;}
-button{background:#1a73e8;color:white;border:none;padding:12px 24px;font-size:16px;border-radius:4px;cursor:pointer;font-weight:bold;}
+#login{max-width:500px;margin:40px auto;text-align:center;background:white;padding:30px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+input{width:90%;padding:10px;margin:10px;font-size:16px;box-sizing:border-box;}
+button{padding:12px 24px;font-size:16px;cursor:pointer;background:#1a73e8;color:white;border:none;border-radius:4px;font-weight:bold;}
 button:hover{background:#1557b0;}
+#app{display:none;max-width:800px;margin:20px auto;padding:20px;}
 #counter{position:fixed;top:10px;right:10px;background:white;border:1px solid #ccc;padding:10px;font-size:14px;border-radius:4px;z-index:1000;}
-.section-title{background:#e8f0fe;color:#1a73e8;padding:12px;border-radius:4px;margin-top:30px;margin-bottom:15px;font-size:18px;}
-.question-block{margin-bottom:25px;padding-bottom:15px;border-bottom:1px dashed #eee;}
+.section-card{background:white;padding:25px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:20px;}
+.section-title{background:#e8f0fe;color:#1a73e8;padding:12px;border-radius:4px;margin-bottom:20px;font-size:18px;font-weight:bold;}
+.question-block{margin-bottom:20px;padding-bottom:15px;border-bottom:1px dashed #eee;}
 .question-text{font-weight:bold;font-size:16px;margin-bottom:10px;}
-.choice-label{display:block;margin:6px 0;cursor:pointer;}
-.review-mode{background:#e6f4ea;border-left:6px solid #137333;padding:15px;margin-bottom:20px;border-radius:4px;}
-.wrong{color:#c62828;font-weight:bold;}
-.correct{color:#137333;font-weight:bold;}
+.choice-label{display:block;margin:8px 0;cursor:pointer;}
 </style>
 </head>
 <body>
-
-<div class="header" id="security-banner">試験中は他の操作をしないでください</div>
-
-<div id="counter" style="display:none;">
-  残り時間: <span id="timerDisplay">--:--</span><br>
+<div class="header">試験中は他の操作をしないでください</div>
+<div id="counter">
+  残り時間: <span id="timerDisplay">--</span><br>
   離脱: <span id="leaveCount">0</span> | 不正: <span id="violation">0</span>
 </div>
 
-<div class="container">
-  <h1 id="exam-title" style="text-align:center; color:#1a73e8;">試験システム</h1>
-
-  <div id="login-panel" class="card">
-    <h2>受験者ログイン</h2>
-    <input id="name" placeholder="氏名">
-    <input id="sid" placeholder="学籍番号">
-    <button onclick="startExam()">試験を開始する</button>
-
-    <div style="margin-top:40px; border-top:1px solid #ccc; padding-top:20px;">
-      <h3>過去の試験結果を確認（見直し）</h3>
-      <p style="font-size:13px; color:#666;">送信後に発行された「テスト管理番号」を入力すると、自分の点数と正誤を確認できます。</p>
-      <input id="receipt-id-input" placeholder="テスト管理番号 (例: REC-XXXXXX)">
-      <button onclick="reviewPastResult()" style="background:#5f6368;">結果を確認する</button>
-    </div>
-  </div>
-
-  <div id="exam-panel" style="display:none;">
-    <div id="questions-form"></div>
-    <div style="text-align:center; margin-top:30px;">
-      <button onclick="confirmSubmit()" style="background:#137333; font-size:18px; padding:15px 40px;">回答を送信する（見直し完了）</button>
-    </div>
-  </div>
-
-  <div id="result-panel" class="card" style="display:none; text-align:center;">
-    <h2 style="color:#137333;">試験回答を送信しました</h2>
-    <div style="background:#fef7e0; border:1px solid #f4b400; padding:15px; border-radius:4px; margin:20px 0; text-align:left;">
-      <p style="margin:0 0 5px 0; font-weight:bold; color:#b06000;">⚠️ 【重要】テスト管理番号</p>
-      <p style="margin:0; font-size:14px; color:#333;">この番号をメモしておくと、後からログイン画面で点数と間違えた問題を確認できます。</p>
-      <p id="display-receipt-id" style="font-size:24px; font-weight:bold; text-align:center; margin:10px 0; letter-spacing:1px;"></p>
-    </div>
-    <h3 id="score-display"></h3>
-    <button onclick="location.reload()" style="background:#5f6368;">トップ画面に戻る</button>
-  </div>
-
-  <div id="review-panel" style="display:none;">
-    <div class="review-mode">
-      <h3>【見直しモード】過去の試験結果を表示しています</h3>
-      <div id="review-meta"></div>
-    </div>
-    <div id="review-questions-area"></div>
-    <button onclick="location.reload()" style="background:#5f6368;">トップ画面に戻る</button>
-  </div>
+<div id="login">
+  <h2 id="exam-title">試験システム</h2>
+  <input id="name" placeholder="氏名">
+  <input id="sid" placeholder="学籍番号"><br>
+  <button onclick="start()">開始</button>
 </div>
 
-<script>
-let examData = {}, allQuestions = [], userAnswers = {};
-let active = false, timeLeft = 0, timerInterval;
-let leaveCount = 0, leaveTime = 0, leaveStart = null, violation = 0;
+<div id="app"></div>
 
-async function loadConfig() {
+<script>
+// 元々の監視用変数をすべて維持
+let questions=[], score=0, active=false, leaveCount=0, leaveTime=0, leaveStart=null, violation=0, timerInterval;
+let CONFIG = { timeLimit: 1800, autoSubmit: true }; 
+let timeLeft = CONFIG.timeLimit;
+
+let token = localStorage.getItem("exam_token") || crypto.randomUUID();
+localStorage.setItem("exam_token", token);
+
+// CSVの代わりに統合されたconfig.jsonから設定と問題を読み込むように変更
+async function load(){
   try {
     const res = await fetch("config.json");
-    examData = await res.json();
-    document.getElementById("exam-title").innerText = examData.settings.examName;
+    const configData = await res.json();
     
-    // 全問題をフラットな配列として展開
-    allQuestions = [];
-    examData.sections.forEach(sec => {
-      sec.questions.forEach(q => {
-        allQuestions.push(q);
+    // 設定値の同期
+    CONFIG = configData;
+    timeLeft = CONFIG.timeLimit || 1800;
+    if(CONFIG.examName) {
+      document.getElementById("exam-title").innerText = CONFIG.examName;
+    }
+    
+    // 全セクションから問題を一つの配列にフラットに展開（採点用）
+    questions = [];
+    if(CONFIG.sections) {
+      CONFIG.sections.forEach(sec => {
+        sec.questions.forEach(q => {
+          questions.push(q);
+        });
       });
-    });
+    }
   } catch(e) {
     alert("config.jsonの読み込みに失敗しました。");
   }
 }
 
-function startExam() {
-  const name = document.getElementById("name").value.trim();
-  const sid = document.getElementById("sid").value.trim();
-  if(!name || !sid) return alert("氏名と学籍番号を入力してください。");
-
-  // 多重受験チェック
-  if(localStorage.getItem("exam_submitted_" + sid)) {
-    return alert("既にこの試験は受験済みです。再受験はできません。");
+function start(){
+  if(!document.getElementById("name").value.trim() || !document.getElementById("sid").value.trim()) {
+    return alert("氏名と学籍番号を入力してください。");
   }
-
-  active = true;
-  timeLeft = examData.settings.timeLimit;
-  document.getElementById("login-panel").style.display = "none";
-  document.getElementById("exam-panel").style.display = "block";
-  document.getElementById("counter").style.display = "block";
+  active=true;
   document.documentElement.requestFullscreen().catch(()=>{});
-
-  // タイマー開始
-  if(examData.settings.autoSubmit) {
-    timerInterval = setInterval(() => {
+  document.getElementById("login").style.display="none";
+  document.getElementById("app").style.display="block";
+  
+  if(CONFIG.autoSubmit){
+    timerInterval = setInterval(()=>{
       timeLeft--;
-      let min = Math.floor(timeLeft / 60);
-      let sec = timeLeft % 60;
-      document.getElementById("timerDisplay").innerText = min + ":" + sec.toString().padStart(2, '0');
+      document.getElementById("timerDisplay").innerText = Math.floor(timeLeft/60) + ":" + (timeLeft%60).toString().padStart(2,'0');
       if(timeLeft <= 0) {
-        alert("制限時間になりました。自動的に送信します。");
-        submitAnswers();
+        alert("制限時間になりました。自動送信します。");
+        finish();
       }
     }, 1000);
   }
-
-  renderQuestionsForm();
+  render();
 }
 
-// Googleフォームのようにセクション分けして全問一覧表示
-function renderQuestionsForm() {
+// Googleフォームのようにセクション分けして全問をスクロール一覧表示
+function render(){
+  if(!CONFIG.sections || CONFIG.sections.length === 0) {
+    document.getElementById("app").innerHTML = "<p>問題が設定されていません。</p>";
+    return;
+  }
+
   let html = "";
-  examData.sections.forEach((sec, sIdx) => {
-    html += `<div class="card">`;
-    html += `<div class="section-title">${sec.title}</div>`;
-    sec.questions.forEach((q, qIdx) => {
+  let qIndex = 0; // 全体での通し問題インデックス
+
+  CONFIG.sections.forEach((sec, sIdx) => {
+    html += `<div class="section-card">`;
+    html += `<div class="section-title">${sec.title || 'セクション ' + (sIdx + 1)}</div>`;
+    
+    sec.questions.forEach((q) => {
       html += `
         <div class="question-block">
           <div class="question-text">Q. ${q.q}</div>
           ${q.choices.map((c, i) => `
             <label class="choice-label">
-              <input type="radio" name="${q.id}" value="${i + 1}" onchange="saveLiveAnswer('${q.id}', ${i + 1})"> ${c}
+              <input type="radio" name="q_${qIndex}" value="${i + 1}"> ${c}
             </label>
           `).join("")}
         </div>`;
+      qIndex++;
     });
+    
     html += `</div>`;
   });
-  document.getElementById("questions-form").innerHTML = html;
+
+  html += `<div style="text-align:center; margin:30px 0;"><button onclick="confirmFinish()">回答を送信する</button></div>`;
+  document.getElementById("app").innerHTML = html;
 }
 
-function saveLiveAnswer(qId, val) {
-  userAnswers[qId] = val;
-}
-
-function confirmSubmit() {
-  // 未回答チェック（見直し支援）
-  let un-answered = 0;
-  allQuestions.forEach(q => {
-    if(!userAnswers[q.id]) un-answered++;
-  });
-
-  let msg = "試験回答を送信してもよろしいですか？\n一度送信すると修正はできません。";
-  if(un-answered > 0) {
-    msg = `⚠️まだ回答していない問題が ${un-answered} 問あります。\n本当に送信してもよろしいですか？`;
-  }
-  
-  if(confirm(msg)) {
-    submitAnswers();
+function confirmFinish() {
+  if(confirm("試験を終了して回答を送信しますか？\n一度送信すると修正はできません。")) {
+    finish();
   }
 }
 
-async function submitAnswers() {
-  active = false;
+async function finish(){
+  active=false;
   clearInterval(timerInterval);
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
 
-  // 採点計算
-  let score = 0;
-  allQuestions.forEach(q => {
-    if(userAnswers[q.id] === q.ans) score++;
-  });
-
-  // テスト管理番号(ランダムな文字列)を生成
-  const receiptId = "REC-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const sid = document.getElementById("sid").value;
-  const name = document.getElementById("name").value;
-
-  const resultPayload = {
-    receiptId: receiptId,
-    name: name,
-    studentId: sid,
-    score: score,
-    total: allQuestions.length,
-    answers: userAnswers,
-    date: new Date().toLocaleString()
-  };
-
-  // 後日見直し用にローカルストレージに保存
-  localStorage.setItem("receipt_" + receiptId, JSON.stringify(resultPayload));
-  localStorage.setItem("exam_submitted_" + sid, receiptId);
-
-  // 教員用GASへデータ送信
-  try {
-    await fetch("https://script.google.com/macros/s/AKfycbx_7hO1brtwsA7MZIxq7pj3YeDWrTySisWcWyeV-my0SDwFaxvi-Cd2uS_RpUm4UdQ_/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name,
-        studentId: sid,
-        score: score,
-        leaveCount: leaveCount,
-        leaveTime: leaveTime,
-        violation: violation,
-        receiptId: receiptId // 管理番号もGASに送る
-      })
+  // 全問一括採点
+  score = 0;
+  let qIndex = 0;
+  if(CONFIG.sections) {
+    CONFIG.sections.forEach(sec => {
+      sec.questions.forEach(q => {
+        let sel = document.querySelector(`input[name="q_${qIndex}"]:checked`);
+        if(sel && Number(sel.value) === q.ans) {
+          score++;
+        }
+        qIndex++;
+      });
     });
-  } catch(e) { console.log("GAS送信エラー"); }
-
-  // 完了表示
-  document.getElementById("exam-panel").style.display = "none";
-  document.getElementById("counter").style.display = "none";
-  document.getElementById("display-receipt-id").innerText = receiptId;
-  document.getElementById("score-display").innerText = `あなたの得点: ${score} / ${allQuestions.length} 問中`;
-  document.getElementById("result-panel").style.display = "block";
-}
-
-// 後日の管理番号による見直し照会
-function reviewPastResult() {
-  const rid = document.getElementById("receipt-id-input").value.trim().toUpperCase();
-  const savedData = localStorage.getItem("receipt_" + rid);
-  
-  if(!savedData) {
-    return alert("該当するテスト管理番号が見つかりません。入力に誤りがないか、または受験時と同じ端末(ブラウザ)であるか確認してください。");
   }
 
-  const res = JSON.parse(savedData);
-  document.getElementById("login-panel").style.display = "none";
-  document.getElementById("review-panel").style.display = "block";
-  
-  document.getElementById("review-meta").innerHTML = `
-    <b>受験者氏名:</b> ${res.name} (${res.studentId})<br>
-    <b>実施日時:</b> ${res.date}<br>
-    <b>総合スコア:</b> <span style="font-size:18px; color:#137333; font-weight:bold;">${res.score} / ${res.total} 点</span>
-  `;
-
-  let html = "";
-  examData.sections.forEach(sec => {
-    html += `<div class="card">`;
-    html += `<div class="section-title">${sec.title}</div>`;
-    sec.questions.forEach(q => {
-      const userAns = res.answers[q.id];
-      const isCorrect = userAns === q.ans;
-      
-      html += `
-        <div class="question-block">
-          <div class="question-text">
-            Q. ${q.q} 
-            ${isCorrect ? '<span class="correct">【○ 正解】</span>' : '<span class="wrong">【× 不正解】</span>'}
-          </div>`;
-      
-      q.choices.forEach((c, i) => {
-        let labelStyle = "";
-        let marker = "";
-        if(i + 1 === q.ans) { labelStyle = "color:#137333; font-weight:bold;"; marker = " (★正解)"; }
-        if(i + 1 === userAns) { labelStyle += " background:#f1f3f4; padding:2px 5px; border-radius:2px;"; marker += " ◀あなたの回答"; }
-        
-        html += `<div style="margin:5px 0; ${labelStyle}">・ ${c} ${marker}</div>`;
-      });
-      html += `</div>`;
-    });
-    html += `</div>`;
+  // 元々のGAS送信ロジックと送信項目（キー名）を完全に維持
+  await fetch("https://script.google.com/macros/s/AKfycbx_7hO1brtwsA7MZIxq7pj3YeDWrTySisWcWyeV-my0SDwFaxvi-Cd2uS_RpUm4UdQ_/exec", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      name:document.getElementById("name").value, 
+      studentId:document.getElementById("sid").value, 
+      score:score, 
+      leaveCount:leaveCount, 
+      leaveTime:leaveTime, 
+      violation:violation
+    })
   });
-  document.getElementById("review-questions-area").innerHTML = html;
+  
+  document.body.innerHTML=`<div style="text-align:center;margin-top:100px;"><h1>終了</h1><p style="font-size:20px;">スコア: ${score}/${qIndex}</p></div>`;
 }
 
-// 不正監視イベント
-document.addEventListener("visibilitychange", () => {
-  if (!active) return;
-  if (document.hidden) { leaveStart = Date.now(); violation++; }
-  else { leaveCount++; leaveTime += Math.round((Date.now() - leaveStart) / 1000); }
-  document.getElementById("leaveCount").innerText = leaveCount;
-  document.getElementById("violation").innerText = violation;
+// 元々の不正監視ロジックを完全に維持
+document.addEventListener("visibilitychange",()=>{
+  if(!active) return;
+  if(document.hidden){ leaveStart=Date.now(); violation++; }
+  else{ leaveCount++; leaveTime+=Math.round((Date.now()-leaveStart)/1000); }
+  document.getElementById("leaveCount").innerText=leaveCount;
+  document.getElementById("violation").innerText=violation;
 });
-
-window.onload = loadConfig;
+window.onload=load;
 </script>
 </body>
 </html>
