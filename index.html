@@ -313,7 +313,7 @@ async function loadSystem() {
 }
 
 // ============================================================
-// 解答中データの一時保存・復元ロジック
+// 解答中データの一時保存・復元ロジックとリアルタイム発信
 // ============================================================
 function saveTempProgress() {
   if (!isExamActive) return;
@@ -325,6 +325,25 @@ function saveTempProgress() {
     metrics
   };
   localStorage.setItem(`exam_temp_progress_${config.examId || 'default'}`, JSON.stringify(progress));
+}
+
+// 管理者画面向けにリアルタイム状況を発信
+function broadcastLiveStatus() {
+  if (!isExamActive) return;
+  const liveData = {
+    examId: config.examId,
+    studentClass: studentInfo.cls,
+    studentId: studentInfo.sid,
+    studentName: studentInfo.name,
+    currentQ: currentIdx + 1,
+    totalQ: questionItems.length,
+    timeLeft: timeLeft,
+    leaveCount: metrics.leaveCount,
+    leaveTime: metrics.leaveTime,
+    violation: metrics.violation,
+    lastUpdated: Date.now()
+  };
+  localStorage.setItem(`live_${config.examId}_${studentInfo.sid}`, JSON.stringify(liveData));
 }
 
 function checkAndRestoreProgress() {
@@ -422,7 +441,8 @@ function startExam() {
   startTimer();
   showCard('card-exam');
   renderQuestion();
-  saveTempProgress(); // 開始時点で一回保存
+  saveTempProgress(); 
+  broadcastLiveStatus(); // 初回発信
 }
 
 function requestFullscreenSilent() {
@@ -443,6 +463,10 @@ function startTimer() {
     // 5秒ごとにタイマー進行状況をローカルストレージに同期保存
     if (timeLeft % 5 === 0) {
       saveTempProgress();
+    }
+    // 3秒ごとにリアルタイム状況を管理画面向けに発信
+    if (timeLeft % 3 === 0) {
+      broadcastLiveStatus();
     }
 
     if(timeLeft <= 0) {
@@ -561,6 +585,9 @@ function renderQuestion() {
   const isLast = currentIdx === questionItems.length - 1;
   document.getElementById('btn-next').innerText = isLast ? '確認・提出画面へ →' : '次へ →';
   document.getElementById('btn-next').style.background = isLast ? '#059669' : 'var(--theme)';
+  
+  // 画面遷移したことを管理画面に即時伝える
+  broadcastLiveStatus();
 }
 
 // ============================================================
@@ -575,11 +602,11 @@ function saveAnswer(qId, type, idx, checked) {
     else arr = arr.filter(v => v !== idx);
     userAnswers[qId] = arr;
   }
-  saveTempProgress(); // リアルタイム保存
+  saveTempProgress(); 
 }
 function saveTextAnswer(qId, val) {
   userAnswers[qId] = [val];
-  saveTempProgress(); // リアルタイム保存
+  saveTempProgress();
 }
 
 // ============================================================
@@ -690,8 +717,9 @@ async function submitFinalAnswers() {
   localStorage.setItem(`receipt_${receiptId}`, JSON.stringify({ payload, questions: questionItems }));
   localStorage.setItem(`exam_rec_${config.examId}_${studentInfo.sid}`, receiptId);
 
-  // 送信が完了したため、クライアント端末の一時保存用解答データを削除
+  // 送信完了時に不要なデータを削除
   localStorage.removeItem(`exam_temp_progress_${config.examId || 'default'}`);
+  localStorage.removeItem(`live_${config.examId}_${studentInfo.sid}`); // リアルタイム監視用データの削除
 
   try {
     fetch(GAS_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
@@ -741,14 +769,16 @@ function onVisibilityChange() {
     metrics.leaveCount++;
     recordViolation("画面離脱");
     showLeaveOverlay();
-    saveTempProgress(); // 離脱回数を即保存
+    saveTempProgress(); 
+    broadcastLiveStatus(); // 離脱時に即時管理画面へ発信
   } else {
     if(leaveStart) {
       const sec = Math.floor((Date.now() - leaveStart) / 1000);
       metrics.leaveTime += sec;
       leaveStart = null;
       updateLeaveOverlayMeta();
-      saveTempProgress(); // 離脱時間を同期保存
+      saveTempProgress(); 
+      broadcastLiveStatus(); // 復帰時に即時管理画面へ発信
     }
   }
 }
@@ -774,6 +804,7 @@ function dismissLeaveOverlay() {
 function recordViolation(msg) {
   metrics.violation++;
   console.warn("[試験監視] " + msg + " | count=" + metrics.violation);
+  broadcastLiveStatus(); // 違反があったら即時発信
 }
 
 // ============================================================
