@@ -3,382 +3,262 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>試験システム - 管理者画面</title>
+<title>試験管理システム - 管理者画面</title>
 <style>
-  :root { 
-    --theme-dark: #1e293b; 
-    --theme-blue: #1565c0; 
-    --theme-hover: #0d47a1;
-    --bg-light: #f8fafc; 
-    --border-color: #cbd5e1;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: #eef2f7; color: #334155; }
-  
-  /* ===== ログイン画面デザイン ===== */
-  .login-container { max-width: 420px; margin: 100px auto; background: white; padding: 36px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-  .login-title { font-size: 22px; font-weight: bold; margin-bottom: 24px; text-align: center; color: var(--theme-blue); border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
-  
-  .form-group { margin-bottom: 18px; }
-  .form-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 6px; color: #475569; }
-  .form-group input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border-color); border-radius: 6px; font-size: 15px; background: #fafbfc; }
-  .form-group input:focus { outline: none; border-color: var(--theme-blue); background: white; }
-  
-  .btn { width: 100%; padding: 14px; background: var(--theme-blue); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-  .btn:hover { background: var(--theme-hover); }
-  
-  /* ===== ダッシュボード共通構造 ===== */
-  .dashboard { display: none; }
-  .dashboard.active { display: block; }
-  
-  header { background: var(--theme-dark); color: white; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-  header h1 { margin: 0; font-size: 20px; font-weight: bold; letter-spacing: 0.5px; }
-  .logout-btn { background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; transition: background 0.2s; }
-  .logout-btn:hover { background: #475569; }
-  
-  .main-content { max-width: 1200px; margin: 30px auto; background: white; padding: 36px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
-  
-  /* タブメニュー */
-  .tabs { display: flex; gap: 12px; border-bottom: 2px solid #e2e8f0; margin-bottom: 24px; }
-  .tab { padding: 12px 24px; cursor: pointer; font-weight: bold; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; font-size: 15px; transition: all 0.2s; }
-  .tab:hover { color: var(--theme-blue); }
-  .tab.active { color: var(--theme-blue); border-bottom: 2px solid var(--theme-blue); }
-  
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-  
-  h2 { margin-top: 0; font-size: 20px; color: var(--theme-dark); }
-  
-  /* テーブル構造 */
-  table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-  table th, table td { padding: 14px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-  table th { background: #f1f5f9; color: #475569; font-weight: bold; border-top: 1px solid #e2e8f0; }
-  table tr:hover { background: #fafbfc; }
-  
-  .btn-action { background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.15s; margin-right: 4px; }
-  .btn-action:hover { background: #0369a1; }
-  
-  /* 状態表示ラベル */
-  .status-success { color: #16a34a; font-weight: bold; background: #f0fdf4; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0; font-size: 12px; }
-  .status-fail { color: #dc2626; font-weight: bold; background: #fef2f2; padding: 3px 8px; border-radius: 4px; border: 1px solid #fecaca; font-size: 12px; }
+:root { --accent: #4f46e5; --danger: #ef4444; --success: #10b981; --border: #e2e8f0; --text: #1e293b; --bg: #f1f5f9; }
+body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+.container { max-width: 1100px; margin: 0 auto; }
+.card { background: white; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; }
+h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; color: var(--accent); }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { border: 1px solid var(--border); padding: 12px; text-align: left; }
+th { background: #f8fafc; font-weight: bold; }
+.btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; margin-right: 4px; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-success { background: var(--success); color: white; }
+.btn-primary { background: var(--accent); color: white; }
+.tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+.tab { padding: 10px 20px; background: #cbd5e1; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.tab.active { background: var(--accent); color: white; }
+.login-box { max-width: 400px; margin: 100px auto; }
+.form-group { margin-bottom: 14px; display: flex; flex-direction: column; }
+.form-group label { margin-bottom: 4px; font-weight: bold; }
+.form-group input { padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
 </style>
 </head>
 <body>
 
-<div id="login-panel" class="login-container">
-  <div class="login-title">管理者ダッシュボード</div>
-  <div class="form-group">
-    <label>ユーザー名</label>
-    <input type="text" id="admin-username" placeholder="username" autofocus>
+<div class="container">
+  <div id="login-section" class="card login-box">
+    <h2>🔒 管理者ログイン</h2>
+    <div class="form-group">
+      <label>ユーザー名</label>
+      <input type="text" id="login-user" placeholder="admin">
+    </div>
+    <div class="form-group">
+      <label>パスワード</label>
+      <input type="password" id="login-pass" placeholder="初期パスワード: admin123">
+    </div>
+    <button class="btn btn-primary" style="width:100%; padding:10px;" onclick="handleLogin()">ログイン</button>
   </div>
-  <div class="form-group">
-    <label>パスワード</label>
-    <input type="password" id="admin-password" placeholder="password">
-  </div>
-  <button class="btn" onclick="handleLogin()">認証してログイン</button>
-</div>
 
-<div id="dashboard-panel" class="dashboard">
-  <header>
-    <h1>オンライン試験システム 管理者用コントロールパネル</h1>
-    <button class="logout-btn" onclick="handleLogout()">安全にログアウト</button>
-  </header>
-  
-  <div class="main-content">
+  <div id="admin-dashboard" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h1 style="margin:0; color:var(--accent);">⚙ 試験管理総合ダッシュボード</h1>
+      <div>
+        <a href="admin_users.html" target="_blank" class="btn btn-primary">👤 管理者アカウントの新規登録</a>
+        <button class="btn btn-danger" onclick="location.reload()">ログアウト</button>
+      </div>
+    </div>
+
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('tab-live', this)">🔴 リアルタイム監視</div>
-      <div class="tab" onclick="switchTab('tab-students', this)">受験者一覧・再受験管理</div>
-      <div class="tab" onclick="switchTab('tab-logs', this)">管理者ログインログ</div>
+      <div class="tab active" onclick="switchTab('exams-tab')">📊 実施テスト一覧</div>
+      <div class="tab" onclick="switchTab('results-tab')">🎓 受験者回答結果</div>
+      <div class="tab" onclick="switchTab('logs-tab')">📜 ログイン履歴・ユーザー確認</div>
     </div>
-    
-    <div id="tab-live" class="tab-panel active">
-      <h2>試験中の生徒（リアルタイムステータス）</h2>
-      <p style="font-size:13px; color:#64748b; margin-top:-6px;">※3秒ごとに自動更新されます。タブ切替や画面離脱などの不正行為がリアルタイムに表示されます。</p>
-      <table>
+
+    <div id="exams-tab" class="tab-content card">
+      <h2>📊 登録テスト一覧情報</h2>
+      <table id="exams-table">
         <thead>
           <tr>
-            <th>クラス</th>
+            <th>試験ID</th>
+            <th>試験名</th>
+            <th>制限時間</th>
+            <th>現在のステータス</th>
+            <th>操作アクション</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="results-tab" class="tab-content card" style="display:none;">
+      <h2>🎓 受験生徒の成績一覧データ</h2>
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>試験名</th>
             <th>学籍番号</th>
             <th>氏名</th>
-            <th>進捗（現在の問題）</th>
-            <th>残り時間</th>
-            <th>不正・離脱警告 🚨</th>
+            <th>得点 / 満点</th>
+            <th>受験日時</th>
+            <th>再受験操作（常時表示）</th>
           </tr>
         </thead>
-        <tbody id="live-list-body">
-          <tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:30px;">現在、試験にログインしている生徒はいません。</td></tr>
-        </tbody>
+        <tbody></tbody>
       </table>
     </div>
-    
-    <div id="tab-students" class="tab-panel">
-      <h2>提出された受験記録とリアルタイム制御</h2>
-      <p style="font-size:13px; color:#64748b; margin-top:-6px;">※ブラウザの共通共有領域(LocalStorage)に保存されている提出レシートデータを展開しています。</p>
-      <table>
-        <thead>
-          <tr>
-            <th>管理用レシート番号</th>
-            <th>クラス</th>
-            <th>学籍番号</th>
-            <th>氏名</th>
-            <th>自動採点スコア</th>
-            <th>データ提出日時</th>
-            <th>不正離脱回数</th>
-            <th>制御操作</th>
-          </tr>
-        </thead>
-        <tbody id="student-list-body">
-        </tbody>
-      </table>
+
+    <div id="logs-tab" class="tab-content card" style="display:none;">
+      <div style="display:flex; gap:20px;">
+        <div style="flex:1;">
+          <h2>📜 管理者ログイン履歴</h2>
+          <table id="logs-table">
+            <thead>
+              <tr>
+                <th>管理者ユーザー</th>
+                <th>ログイン日時</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div style="flex:1;">
+          <h2>👥 ログイン許可管理者一覧表</h2>
+          <table id="users-table">
+            <thead>
+              <tr>
+                <th>ユーザー名</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-    
-    <div id="tab-logs" class="tab-panel">
-      <h2>管理者セキュリティログイン履歴</h2>
-      <p style="font-size:13px; color:#64748b; margin-top:-6px;">管理者画面に対するログイン・アクセス試行の監査トレースログです。</p>
-      <table>
-        <thead>
-          <tr>
-            <th>ログイン試行日時</th>
-            <th>試行ユーザー名</th>
-            <th>認証ステータス</th>
-          </tr>
-        </thead>
-        <tbody id="log-list-body">
-        </tbody>
-      </table>
-    </div>
+
   </div>
 </div>
 
 <script>
-  // 初期認定アカウント情報
-  const ADMIN_ID = "admin";
-  const ADMIN_PW = "password0000";
+// デフォルトの管理者初期化
+if(!localStorage.getItem('EXAM_SYSTEM_USERS')) {
+  localStorage.setItem('EXAM_SYSTEM_USERS', JSON.stringify([{username: 'admin', password: 'admin123'}]));
+}
 
-  // ログイン認証アクション
-  function handleLogin() {
-    const userInp = document.getElementById('admin-username').value.trim();
-    const passInp = document.getElementById('admin-password').value;
+function handleLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  const users = JSON.parse(localStorage.getItem('EXAM_SYSTEM_USERS') || '[]');
+
+  const match = users.find(u => u.username === user && u.password === pass);
+  if(match) {
+    // ログイン履歴への追加
+    const logs = JSON.parse(localStorage.getItem('EXAM_SYSTEM_LOGS') || '[]');
+    logs.unshift({ username: user, timestamp: new Date().toLocaleString() });
+    localStorage.setItem('EXAM_SYSTEM_LOGS', JSON.stringify(logs));
+
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('admin-dashboard').style.display = 'block';
     
-    const currentLogs = JSON.parse(localStorage.getItem('exam_admin_login_logs') || '[]');
-    const nowTime = new Date().toLocaleString('ja-JP');
-
-    if (userInp === ADMIN_ID && passInp === ADMIN_PW) {
-      // 成功ログ記録
-      currentLogs.push({ username: userInp, timestamp: nowTime, status: "成功" });
-      localStorage.setItem('exam_admin_login_logs', JSON.stringify(currentLogs));
-      
-      // セッションストレージで擬似ログイン保持
-      sessionStorage.setItem('admin_session_auth', 'true');
-      
-      // パネルのトグル
-      document.getElementById('login-panel').style.display = 'none';
-      document.getElementById('dashboard-panel').classList.add('active');
-      
-      // 初期データのロード
-      loadLiveStatus();
-      loadStudentRecords();
-    } else {
-      // 失敗ログ記録
-      currentLogs.push({ username: userInp || "(空欄)", timestamp: nowTime, status: "失敗" });
-      localStorage.setItem('exam_admin_login_logs', JSON.stringify(currentLogs));
-      
-      alert("認証エラー: ユーザー名またはパスワードが間違っています。");
-    }
+    loadExams();
+    loadResults();
+    loadLogsAndUsers();
+  } else {
+    alert('ユーザー名またはパスワードが正しくありません。');
   }
+}
 
-  // ログアウト処理
-  function handleLogout() {
-    sessionStorage.removeItem('admin_session_auth');
-    location.reload();
-  }
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tabId).style.display = 'block';
+  event.target.classList.add('active');
+}
 
-  // タブ切り替え処理
-  function switchTab(targetId, clickTab) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    
-    clickTab.classList.add('active');
-    document.getElementById(targetId).classList.add('active');
-    
-    if (targetId === 'tab-live') loadLiveStatus();
-    if (targetId === 'tab-students') loadStudentRecords();
-    if (targetId === 'tab-logs') loadLoginLogs();
-  }
+// テスト管理一覧
+function loadExams() {
+  const exams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
+  const tbody = document.querySelector('#exams-table tbody');
+  tbody.innerHTML = '';
 
-  // リアルタイム監視データの読み出し (追加)
-  function loadLiveStatus() {
-    if (!document.getElementById('tab-live').classList.contains('active')) return;
-    
-    const tbody = document.getElementById('live-list-body');
-    tbody.innerHTML = '';
-    let dataCount = 0;
-    const now = Date.now();
-    
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey.startsWith('live_')) {
-        try {
-          const liveData = JSON.parse(localStorage.getItem(storageKey));
-          
-          // 最終書き込みから30秒以上経過していたら通信切断（ブラウザ落ち等）と判定
-          const isOffline = (now - liveData.lastUpdated) > 30000;
-          
-          const tr = document.createElement('tr');
-          if (isOffline) tr.style.opacity = '0.5';
-          
-          // 警告文言とスタイルの動的変更
-          let warningText = '正常';
-          let warningStyle = 'color:#16a34a; font-weight:bold; background:#f0fdf4; padding:4px 10px; border-radius:4px; border:1px solid #bbf7d0; font-size:12px;';
-          
-          if (liveData.leaveCount > 0 || liveData.violation > 0) {
-            warningText = `🚨 離脱:${liveData.leaveCount}回 (${liveData.leaveTime || 0}秒) / 警告:${liveData.violation || 0}回`;
-            warningStyle = 'color:#dc2626; font-weight:bold; background:#fef2f2; padding:4px 10px; border-radius:4px; border:1px solid #fecaca; font-size:12px;';
-          }
-          
-          if (isOffline) {
-            warningText += ' [切断/切替済]';
-          }
-          
-          // 時間のパース
-          const min = Math.floor(liveData.timeLeft / 60);
-          const sec = liveData.timeLeft % 60;
-          const timeStr = liveData.timeLeft >= 0 ? `${min}分${sec}秒` : '時間切れ';
+  exams.forEach(e => {
+    const tr = document.createElement('tr');
+    const isAct = e.status === 'active';
+    tr.innerHTML = `
+      <td><b>${e.settings.examId}</b></td>
+      <td>${e.settings.examName}</td>
+      <td>${e.settings.timeLimit} 秒</td>
+      <td style="color:${isAct ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${isAct ? '実施中' : '回答終了'}</td>
+      <td>
+        ${isAct ? `<button class="btn btn-danger" onclick="toggleExamStatus('${e.settings.examId}', 'suspended')">回答を終了</button>` 
+                : `<button class="btn btn-success" onclick="toggleExamStatus('${e.settings.examId}', 'active')">再開</button>`}
+        <button class="btn btn-danger" style="background:#b91c1c;" onclick="deleteExam('${e.settings.examId}')">削除</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-          tr.innerHTML = `
-            <td>${escapeHtml(liveData.studentClass)}</td>
-            <td>${escapeHtml(liveData.studentId)}</td>
-            <td><strong>${escapeHtml(liveData.studentName)}</strong></td>
-            <td>第 <span style="color:var(--theme-blue); font-weight:bold;">${liveData.currentQ}</span> / ${liveData.totalQ} 問</td>
-            <td>${timeStr}</td>
-            <td><span style="${warningStyle}">${warningText}</span></td>
-          `;
-          tbody.appendChild(tr);
-          dataCount++;
-        } catch(e) {
-          console.error("ライブデータパースエラー:", e);
-        }
-      }
-    }
-    
-    if (dataCount === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:30px;">現在、試験にログインしている生徒はいません。</td></tr>`;
-    }
-  }
+function toggleExamStatus(examId, nextStatus) {
+  let exams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
+  exams = exams.map(e => { if(e.settings.examId === examId) { e.status = nextStatus; } return e; });
+  localStorage.setItem('EXAM_SYSTEM_EXAMS', JSON.stringify(exams));
+  loadExams();
+}
 
-  // 受験生記録の読み出し
-  function loadStudentRecords() {
-    const tbody = document.getElementById('student-list-body');
-    tbody.innerHTML = '';
-    let dataCount = 0;
-    
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey.startsWith('receipt_')) {
-        try {
-          const rawData = JSON.parse(localStorage.getItem(storageKey));
-          const p = rawData.payload;
-          
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${escapeHtml(p.receiptId)}</strong></td>
-            <td>${escapeHtml(p.studentClass)}</td>
-            <td>${escapeHtml(p.studentId)}</td>
-            <td>${escapeHtml(p.studentName)}</td>
-            <td><span style="color:var(--theme-blue); font-weight:bold;">${p.autoScore} 点</span></td>
-            <td>${escapeHtml(p.timestamp)}</td>
-            <td><span style="${p.metrics && p.metrics.leaveCount > 0 ? 'color:#dc2626; font-weight:bold;' : 'color:#64748b;'}">${p.metrics ? p.metrics.leaveCount : 0} 回</span></td>
-            <td>
-              <button class="btn-action" onclick="allowStudentReExam('${p.examId}', '${p.studentId}', '${p.studentName}')">再受験を許可</button>
-              <button class="btn-action" style="background:#dc2626;" onclick="deleteStudentRecord('${storageKey}', '${p.studentName}', '${p.receiptId}')">データ削除</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-          dataCount++;
-        } catch(e) {
-          console.error("データ解析失敗レシート:", storageKey, e);
-        }
-      }
-    }
-    
-    if (dataCount === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">現在、格納されている送信済みの受験データはありません。</td></tr>`;
-    }
-  }
+function deleteExam(examId) {
+  if(!confirm('本当にこのテストを削除しますか？\n削除すると、これに回答した生徒の全回答記録もすべて一緒に消去されます。')) return;
+  
+  let exams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
+  exams = exams.filter(e => e.settings.examId !== examId);
+  localStorage.setItem('EXAM_SYSTEM_EXAMS', JSON.stringify(exams));
 
-  // 提出データの完全削除処理 (追加)
-  function deleteStudentRecord(storageKey, studentName, receiptId) {
-    const confirmMessage = `本当に ${studentName} の受験データを完全に削除しますか？\n\n【管理用レシート番号】\n${receiptId}\n\n※この操作を実行すると、自動採点スコアや解答データは完全に消去され元に戻せません。`;
-    
-    if (confirm(confirmMessage)) {
-      localStorage.removeItem(storageKey);
-      alert(`${studentName}（レシート番号: ${receiptId}）の記録を削除しました。`);
-      loadStudentRecords();
-    }
-  }
+  let results = JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]');
+  results = results.filter(r => r.examId !== examId);
+  localStorage.setItem('EXAM_SYSTEM_RESULTS', JSON.stringify(results));
 
-  // 再受験の許可処理 (多重制限ロックキーのみ解除)
-  function allowStudentReExam(examId, studentId, studentName) {
-    const confirmMessage = `氏名: ${studentName} (学籍番号: ${studentId}) の再受験を許可しますか？\n\n【処理内容】\n生徒側の多重受験ブロック(制限)のみを解除します。\n※すでに提出された過去の自動採点データレシートは上書きされず管理画面に残ります。`;
-    
-    if (confirm(confirmMessage)) {
-      const blockKey = `exam_rec_${examId}_${studentId}`;
-      
-      if(localStorage.getItem(blockKey)) {
-        localStorage.removeItem(blockKey);
-        alert(`処理成功:\n学籍番号: ${studentId} の多重受験防止ブロックを解除しました。\n生徒のブラウザで再度ログイン・試験開始が可能です。`);
-      } else {
-        alert("該当の学籍番号に対するブロック履歴がこのブラウザに見つかりませんでした（既に許可されているか、別のブラウザ環境で提出された可能性があります）。再受験枠として開放状態です。");
-      }
-      loadStudentRecords();
-    }
-  }
+  loadExams();
+  loadResults();
+}
 
-  // セキュリティログの読み出し
-  function loadLoginLogs() {
-    const tbody = document.getElementById('log-list-body');
-    tbody.innerHTML = '';
-    
-    const logs = JSON.parse(localStorage.getItem('exam_admin_login_logs') || '[]').reverse(); // 新しい順に降順ソート
-    
-    if (logs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:20px;">ログインログ情報が存在しません。</td></tr>`;
-      return;
-    }
-    
-    logs.forEach(log => {
-      const tr = document.createElement('tr');
-      const isSuccess = log.status === '成功';
-      const statusSpan = isSuccess 
-        ? `<span class="status-success">成功</span>` 
-        : `<span class="status-fail">失敗</span>`;
-        
-      tr.innerHTML = `
-        <td>${escapeHtml(log.timestamp)}</td>
-        <td><strong>${escapeHtml(log.username)}</strong></td>
-        <td>${statusSpan}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
+// 生徒回答結果 & 再受験可能化
+function loadResults() {
+  const results = JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]');
+  const tbody = document.querySelector('#results-table tbody');
+  tbody.innerHTML = '';
 
-  function escapeHtml(str) {
-    if(!str) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.examName}</td>
+      <td>${r.studentId}</td>
+      <td>${r.studentName}</td>
+      <td><b>${r.score}</b> / ${r.totalScore} 点</td>
+      <td>${r.timestamp}</td>
+      <td><button class="btn btn-danger" onclick="allowReExam('${r.id}')">再受験を許可 (データを削除)</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-  // 3秒間隔でリアルタイム監視テーブルを自動更新
-  setInterval(loadLiveStatus, 3000);
+function allowReExam(resultId) {
+  if(!confirm('該当生徒の回答データを削除して、再受験ができる状態へ変更しますか？')) return;
+  let results = JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]');
+  results = results.filter(r => r.id !== resultId);
+  localStorage.setItem('EXAM_SYSTEM_RESULTS', JSON.stringify(results));
+  loadResults();
+}
 
-  // 簡易セッション生存チェック
-  window.onload = function() {
-    if (sessionStorage.getItem('admin_session_auth') === 'true') {
-      document.getElementById('login-panel').style.display = 'none';
-      document.getElementById('dashboard-panel').classList.add('active');
-      loadLiveStatus();
-      loadStudentRecords();
-    }
-  };
+// ログとユーザー一覧
+function loadLogsAndUsers() {
+  const logs = JSON.parse(localStorage.getItem('EXAM_SYSTEM_LOGS') || '[]');
+  const lBody = document.querySelector('#logs-table tbody');
+  lBody.innerHTML = '';
+  logs.forEach(l => {
+    lBody.innerHTML += `<tr><td>${l.username}</td><td>${l.timestamp}</td></tr>`;
+  });
+
+  const users = JSON.parse(localStorage.getItem('EXAM_SYSTEM_USERS') || '[]');
+  const uBody = document.querySelector('#users-table tbody');
+  uBody.innerHTML = '';
+  users.forEach(u => {
+    uBody.innerHTML += `<tr>
+      <td><b>${u.username}</b></td>
+      <td>${u.username === 'admin' ? '<i style="color:gray;">削除不可</i>' : `<button class="btn btn-danger" onclick="deleteUser('${u.username}')">削除</button>`}</td>
+    </tr>`;
+  });
+}
+
+function deleteUser(username) {
+  if(!confirm(`管理者ユーザー「${username}」のログイン権限を削除しますか？`)) return;
+  let users = JSON.parse(localStorage.getItem('EXAM_SYSTEM_USERS') || '[]');
+  users = users.filter(u => u.username !== username);
+  localStorage.setItem('EXAM_SYSTEM_USERS', JSON.stringify(users));
+  loadLogsAndUsers();
+}
 </script>
 </body>
 </html>
