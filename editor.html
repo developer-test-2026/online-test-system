@@ -16,6 +16,7 @@
   --sub: #64748b;
   --bg: #f1f5f9;
   --card-bg: #ffffff;
+  --blue-btn: #1565c0;
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); }
@@ -131,6 +132,8 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 .type-select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
 .del-q-btn { background: none; border: none; color: #cbd5e1; cursor: pointer; padding: 6px; border-radius: 4px; font-size: 14px; }
 .del-q-btn:hover { color: var(--danger); background: #fef2f2; }
+.duplicate-q-btn { background: none; border: 1px solid var(--border); color: var(--sub); cursor: pointer; padding: 6px 10px; border-radius: 4px; font-size: 13px; font-weight: bold; }
+.duplicate-q-btn:hover { color: var(--accent); background: var(--accent-light); border-color: var(--accent); }
 
 /* 追加ボタンエリア */
 .add-area {
@@ -169,6 +172,8 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 .btn-success:hover { background: #059669; }
 .btn-outline { background: white; color: var(--accent); border: 2px solid var(--accent); }
 .btn-outline:hover { background: var(--accent-light); }
+.btn-blue { background: var(--blue-btn) !important; color: white !important; }
+.btn-blue:hover { background: #0d47a1 !important; }
 
 /* ===== トースト ===== */
 .toast {
@@ -186,40 +191,34 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 /* ===== モーダル（インポート） ===== */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; align-items: center; justify-content: center; }
 .modal-overlay.show { display: flex; }
-.modal-box { background: blue; border-radius: 12px; padding: 28px; width: 90%; max-width: 600px; }
-.modal-box h3 { margin: 0 0 14px 0; }
+.modal-box { background: white; border-radius: 12px; padding: 28px; width: 90%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.modal-box h3 { margin: 0 0 14px 0; color: var(--text); }
 .modal-box textarea { width: 100%; height: 180px; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 14px; resize: vertical; font-family: monospace; }
 .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
 </style>
 </head>
 <body>
 
-<!-- ヘッダー -->
 <header class="app-header">
   <div class="logo">📝 試験作成エディタ</div>
   <div class="actions">
-    <button class="btn btn-outline" style="border-color:rgba(255,255,255,0.5); color:white;" onclick="openImportModal()">⬆ インポート</button>
+    <button class="btn btn-blue" onclick="openImportModal()">⬆ インポート</button>
     <button class="btn" style="background:rgba(255,255,255,0.15); color:white;" onclick="previewJSON()">👁 JSONプレビュー</button>
     <button class="btn btn-success" onclick="downloadConfig()">⬇ config.json ダウンロード</button>
   </div>
 </header>
 
-<!-- メインレイアウト -->
 <div class="editor-layout">
 
-  <!-- 左：エディタ本体 -->
   <div class="editor-main">
 
-    <!-- 試験タイトルカード -->
     <div class="exam-title-card">
-      <input type="text" id="exam-title-input" placeholder="試験のタイトルを入力..." value="2026年度 定期考査（情報・プログラミング）" oninput="syncSidebarId()">
+      <input type="text" id="exam-title-input" placeholder="試験のタイトルを入力してください..." value="" oninput="syncSidebarId()">
       <textarea id="exam-desc-input" placeholder="試験の説明・注意事項（任意）" rows="2"></textarea>
     </div>
 
-    <!-- 問題リスト -->
     <div id="items-container"></div>
 
-    <!-- 追加ボタン -->
     <div class="add-area">
       <button class="add-btn" onclick="addQuestion('single')"><span class="icon">＋</span>問題を追加</button>
       <button class="add-btn" onclick="addSection()"><span class="icon">📑</span>セクションを追加</button>
@@ -227,12 +226,12 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 
   </div>
 
-  <!-- 右：設定サイドバー -->
   <div class="editor-sidebar">
 
     <div class="sidebar-card">
       <h3>試験設定</h3>
       <div class="sidebar-item"><label>試験ID</label><input type="text" id="cfg-id" value="EXAM-2026-A"></div>
+      <div class="sidebar-item"><label>既定の点数（初期値）</label><input type="number" id="cfg-default-score" value="10" min="1"></div>
       <div class="sidebar-item"><label>有効開始日時</label><input type="datetime-local" id="cfg-start"></div>
       <div class="sidebar-item"><label>有効終了日時</label><input type="datetime-local" id="cfg-end"></div>
       <div class="sidebar-item"><label>制限時間（秒）</label><input type="number" id="cfg-limit" value="1800" min="60"></div>
@@ -262,10 +261,8 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
   </div>
 </div>
 
-<!-- トースト通知 -->
 <div class="toast" id="toast-msg"></div>
 
-<!-- インポートモーダル -->
 <div class="modal-overlay" id="import-modal">
   <div class="modal-box">
     <h3>config.json をインポート</h3>
@@ -278,7 +275,6 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
   </div>
 </div>
 
-<!-- JSONプレビューモーダル -->
 <div class="modal-overlay" id="preview-modal">
   <div class="modal-box" style="max-width:700px;">
     <h3>config.json プレビュー</h3>
@@ -291,45 +287,46 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 </div>
 
 <script>
-// ============================================================
-// データモデル
-// ============================================================
-let items = []; // {type:'section'|'question', ...}
+let items = []; 
 let nextId = 1;
 
 const TYPES = {
   single:   { label: '単一選択（ラジオ）' },
   multiple: { label: '複数選択（チェックボックス）' },
   tf:       { label: '○×問題' },
-  text:     { label: '記述式' }
+  text:     { label: '記述式' },
+  perfect_text: { label: '完全回答記述' }
 };
 
-// ============================================================
-// 初期化（サンプルデータ）
-// ============================================================
 window.onload = () => {
-  // デフォルトで1問追加
   addQuestion('single', false);
   renderAll();
   updateStats();
 };
 
-// ============================================================
-// 問題追加
-// ============================================================
 function addQuestion(type = 'single', doRender = true) {
   const id = 'q' + (nextId++);
+  const defaultScore = parseInt(document.getElementById('cfg-default-score').value) || 10;
   items.push({
     id, type, category: 'question',
     text: '',
     description: '',
-    options: type === 'tf' ? ['○', '×'] : ['', '', '', ''],
-    answer: [0],
-    score: 10,
+    options: type === 'tf' ? ['○', '×'] : (type === 'text' || type === 'perfect_text' ? [] : ['', '', '', '']),
+    answer: (type === 'text' || type === 'perfect_text') ? [''] : [0],
+    score: defaultScore,
     difficulty: '普',
     modelAnswer: ''
   });
   if(doRender) { renderAll(); updateStats(); scrollToLast(); }
+}
+
+function duplicateQuestion(idx) {
+  const source = items[idx];
+  const copy = JSON.parse(JSON.stringify(source));
+  copy.id = (copy.category === 'section' ? 'sec' : 'q') + (nextId++);
+  items.splice(idx + 1, 0, copy);
+  renderAll();
+  showToast('📋 質問を複製しました');
 }
 
 function addSection(doRender = true) {
@@ -349,9 +346,6 @@ function scrollToLast() {
   }, 50);
 }
 
-// ============================================================
-// レンダリング
-// ============================================================
 function renderAll() {
   const container = document.getElementById('items-container');
   container.innerHTML = '';
@@ -388,7 +382,7 @@ function renderQuestion(item, idx, qNum) {
   div.className = 'card q-card';
   div.dataset.idx = idx;
   div.onclick = (e) => {
-    if(e.target.closest('.q-card-footer') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return;
+    if(e.target.closest('.q-card-footer') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.classList.contains('choice-indicator')) return;
     document.querySelectorAll('.q-card').forEach(c => c.classList.remove('focused'));
     div.classList.add('focused');
   };
@@ -409,18 +403,18 @@ function renderQuestion(item, idx, qNum) {
         </div>`;
     });
     choicesHtml += `</div>
-      <button class="add-choice-btn" onclick="addChoice(${idx})">＋ 選択肢を追加</button>
-      <div style="font-size:12px;color:#94a3b8;margin-top:6px;">${item.type === 'multiple' ? '丸いアイコン' : '丸いアイコン'}をクリックして正解を設定してください${item.type === 'multiple' ? '（複数可）' : ''}</div>`;
+      <button class="add-choice-btn" onclick="addChoice(${idx})">＋ 選択肢を追加</button>`;
   } else if(item.type === 'tf') {
     choicesHtml = `
       <div class="tf-choice">
         <div class="tf-opt ${item.answer.includes(0) ? 'selected' : ''}" onclick="setTFAnswer(${idx}, 0)">○（正しい）</div>
         <div class="tf-opt ${item.answer.includes(1) ? 'selected' : ''}" onclick="setTFAnswer(${idx}, 1)">×（誤り）</div>
       </div>`;
-  } else if(item.type === 'text') {
+  } else if(item.type === 'text' || item.type === 'perfect_text') {
+    const isPerfect = item.type === 'perfect_text';
     choicesHtml = `
       <div class="text-placeholder">（受験者がここにテキストを入力します）</div>
-      <div class="model-ans-label">模範解答（管理画面での採点時に表示）</div>
+      <div class="model-ans-label">模範解答（${isPerfect ? '完全一致のみ正解・それ以外は×' : '部分一致等で採点'}）</div>
       <textarea class="model-ans-input" placeholder="模範解答を入力..." rows="2"
         oninput="items[${idx}].modelAnswer=this.value">${esc(item.modelAnswer)}</textarea>`;
   }
@@ -452,15 +446,13 @@ function renderQuestion(item, idx, qNum) {
       <select class="type-select" onchange="changeType(${idx}, this.value)">
         ${Object.entries(TYPES).map(([k,v]) => `<option value="${k}" ${item.type===k?'selected':''}>${v.label}</option>`).join('')}
       </select>
+      <button class="duplicate-q-btn" onclick="duplicateQuestion(${idx})">📋 複製</button>
       <button class="del-q-btn" onclick="removeItem(${idx})" title="この問題を削除">🗑</button>
     </div>
   `;
   return div;
 }
 
-// ============================================================
-// 選択肢操作
-// ============================================================
 function toggleCorrect(idx, oi) {
   const item = items[idx];
   if(item.type === 'single') {
@@ -495,7 +487,7 @@ function changeType(idx, type) {
   const item = items[idx];
   item.type = type;
   if(type === 'tf') { item.options = ['○', '×']; item.answer = [0]; }
-  else if(type === 'text') { item.options = []; item.answer = []; item.modelAnswer = item.modelAnswer || ''; }
+  else if(type === 'text' || type === 'perfect_text') { item.options = []; item.answer = []; item.modelAnswer = item.modelAnswer || ''; }
   else { item.options = item.options.length >= 2 ? item.options : ['', '', '', '']; item.answer = [0]; }
   renderAll();
 }
@@ -506,16 +498,13 @@ function removeItem(idx) {
   renderAll();
 }
 
-// ============================================================
-// 統計更新
-// ============================================================
 function updateStats() {
   const qs = items.filter(i => i.category === 'question');
   const secs = items.filter(i => i.category === 'section');
   const total = qs.reduce((s, q) => s + (q.score || 0), 0);
   const byType = {};
   qs.forEach(q => { byType[q.type] = (byType[q.type] || 0) + 1; });
-  const labels = { single:'単一選択', multiple:'複数選択', tf:'○×', text:'記述式' };
+  const labels = { single:'単一選択', multiple:'複数選択', tf:'○×', text:'記述式', perfect_text:'完全回答記述' };
   document.getElementById('stats-panel').innerHTML = `
     <b>問題数:</b> ${qs.length} 問<br>
     <b>セクション数:</b> ${secs.length} 個<br>
@@ -524,18 +513,13 @@ function updateStats() {
   `;
 }
 
-function syncSidebarId() {
-  // タイトル変更時に特にIDは変更しない（手動）
-}
+function syncSidebarId() {}
 
-// ============================================================
-// JSON生成
-// ============================================================
 function buildJSON() {
   const output = {
     settings: {
-      examId: document.getElementById('cfg-id').value,
-      examName: document.getElementById('exam-title-input').value || '試験',
+      examId: document.getElementById('cfg-id').value || "EXAM-" + Date.now(),
+      examName: document.getElementById('exam-title-input').value || '無題の試験',
       examDescription: document.getElementById('exam-desc-input').value,
       startTime: document.getElementById('cfg-start').value,
       endTime: document.getElementById('cfg-end').value,
@@ -566,7 +550,7 @@ function buildJSON() {
         score: item.score || 10,
         difficulty: item.difficulty || '普'
       };
-      if(item.type === 'text') {
+      if(item.type === 'text' || item.type === 'perfect_text') {
         q.options = [];
         q.answer = [item.modelAnswer || ''];
       } else {
@@ -581,32 +565,33 @@ function buildJSON() {
 
 function downloadConfig() {
   const output = buildJSON();
+  
+  // システムへの連動保存
+  let exams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
+  exams = exams.filter(e => e.settings.examId !== output.settings.examId);
+  output.status = 'active';
+  exams.push(output);
+  localStorage.setItem('EXAM_SYSTEM_EXAMS', JSON.stringify(exams));
+
   const str = JSON.stringify(output, null, 2);
   const blob = new Blob([str], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'config.json';
   a.click();
-  showToast('✅ config.json をダウンロードしました');
+  showToast('✅ config.json をダウンロードし、システムへ保存しました');
   closePreviewModal();
 }
 
-// ============================================================
-// インポート・プレビュー
-// ============================================================
-function openImportModal() {
-  document.getElementById('import-modal').classList.add('show');
-}
-function closeImportModal() {
-  document.getElementById('import-modal').classList.remove('show');
-}
+function openImportModal() { document.getElementById('import-modal').classList.add('show'); }
+function closeImportModal() { document.getElementById('import-modal').classList.remove('show'); }
+
 function importJSON() {
   try {
     const raw = document.getElementById('import-textarea').value.trim();
     const data = JSON.parse(raw);
     if(!data.settings || !data.questions) throw new Error('形式が正しくありません');
 
-    // 設定を読み込む
     const s = data.settings;
     document.getElementById('cfg-id').value = s.examId || '';
     document.getElementById('exam-title-input').value = s.examName || '';
@@ -625,7 +610,6 @@ function importJSON() {
       document.getElementById('sec-dev').checked = s.security.devTools !== false;
     }
 
-    // 問題を読み込む
     items = [];
     nextId = 1;
     data.questions.forEach(q => {
@@ -638,7 +622,7 @@ function importJSON() {
           text: q.text || '', description: q.description || '',
           options: q.options || [], answer: q.answer || [0],
           score: q.score || 10, difficulty: q.difficulty || '普',
-          modelAnswer: (q.type === 'text' && q.answer) ? q.answer[0] : ''
+          modelAnswer: (q.type === 'text' || q.type === 'perfect_text') && q.answer ? q.answer[0] : ''
         });
       }
     });
@@ -656,26 +640,16 @@ function previewJSON() {
   document.getElementById('preview-textarea').value = str;
   document.getElementById('preview-modal').classList.add('show');
 }
-function closePreviewModal() {
-  document.getElementById('preview-modal').classList.remove('show');
-}
+function closePreviewModal() { document.getElementById('preview-modal').classList.remove('show'); }
 
-// ============================================================
-// ユーティリティ
-// ============================================================
 function showToast(msg) {
   const el = document.getElementById('toast-msg');
   el.innerText = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2800);
 }
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-}
-// モーダル外クリックで閉じる
+function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
 document.addEventListener('click', e => {
   if(e.target.id === 'import-modal') closeImportModal();
   if(e.target.id === 'preview-modal') closePreviewModal();
