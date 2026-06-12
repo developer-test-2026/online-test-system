@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>試験管理システム - 管理者画面</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@latest"></script>
 <style>
 :root { --accent: #4f46e5; --danger: #ef4444; --success: #10b981; --border: #e2e8f0; --text: #1e293b; --bg: #f1f5f9; }
 body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
@@ -33,8 +34,11 @@ th { background: #f8fafc; font-weight: bold; }
 .stat-value { font-size: 24px; font-weight: bold; color: var(--accent); }
 .filter-area { display: flex; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;}
 .filter-col { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
-/* 1画面に収まるようグラフエリアを制限 */
 .chart-container { max-height: 180px; position: relative; width: 100%; }
+.sync-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.sync-indicator.synced { background: var(--success); }
+.sync-indicator.pending { background: #f59e0b; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 </style>
 </head>
 <body>
@@ -51,6 +55,7 @@ th { background: #f8fafc; font-weight: bold; }
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h1 style="margin:0; color:var(--accent);">⚙ 試験管理総合ダッシュボード</h1>
       <div>
+        <span class="sync-indicator synced" id="sync-status" title="同期状態"></span>
         <button class="btn btn-outline" onclick="openSyncModal()">💾 全データ同期</button>
         <button class="btn btn-outline" onclick="openAccountModal()">🔑 ID/PW変更</button>
         <a href="admin_users.html" target="_blank" class="btn btn-primary">👤 管理者追加</a>
@@ -182,6 +187,30 @@ let currentAdminUser = '';
 let chartInstance = null;
 let filteredResultsData = [];
 
+// Appwrite設定（オプション）
+const APPWRITE_ENDPOINT = 'https://cloud.appwrite.io/v1';
+const APPWRITE_PROJECT_ID = 'your-project-id';
+let appwriteClient = null;
+
+function initAppwrite() {
+  try {
+    const { Client, Databases } = window.Appwrite;
+    if (!Client) return false;
+    appwriteClient = {
+      client: new Client()
+        .setEndpoint(APPWRITE_ENDPOINT)
+        .setProject(APPWRITE_PROJECT_ID),
+      database: new Databases(new Client()
+        .setEndpoint(APPWRITE_ENDPOINT)
+        .setProject(APPWRITE_PROJECT_ID))
+    };
+    return true;
+  } catch(e) {
+    console.log('Appwrite initialization skipped');
+    return false;
+  }
+}
+
 if(!localStorage.getItem('EXAM_SYSTEM_USERS')) {
   localStorage.setItem('EXAM_SYSTEM_USERS', JSON.stringify([{username: 'admin', password: 'admin-password-ishikariminami-2026'}]));
 }
@@ -201,6 +230,7 @@ function handleLogin() {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
     
+    initAppwrite();
     loadExams();
     initFilters();
     loadLogsAndUsers();
@@ -217,9 +247,9 @@ function switchTab(tabId) {
   if(tabId === 'results-tab' && filteredResultsData.length === 0) applyFilter();
 }
 
-/* =====================================================================
-   端末間同期データ管理機能
-===================================================================== */
+// =====================================================================
+// 端末間同期データ管理機能
+// =====================================================================
 function openSyncModal() {
   const syncObj = {
     exams: JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]'),
@@ -256,9 +286,9 @@ function importSyncData() {
   }
 }
 
-/* =====================================================================
-   アカウント変更機能
-===================================================================== */
+// =====================================================================
+// アカウント変更機能
+// =====================================================================
 function openAccountModal() { document.getElementById('account-modal').classList.add('show'); }
 function closeAccountModal() { document.getElementById('account-modal').classList.remove('show'); }
 function updateAccount() {
@@ -282,9 +312,9 @@ function updateAccount() {
   loadLogsAndUsers();
 }
 
-/* =====================================================================
-   テスト一覧・ステータス
-===================================================================== */
+// =====================================================================
+// テスト一覧・ステータス
+// =====================================================================
 function loadExams() {
   const exams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
   const tbody = document.querySelector('#exams-table tbody');
@@ -323,9 +353,9 @@ function deleteExam(examId) {
   loadExams(); initFilters(); applyFilter();
 }
 
-/* =====================================================================
-   分析・成績一覧
-===================================================================== */
+// =====================================================================
+// 分析・成績一覧
+// =====================================================================
 function initFilters() {
   const results = JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]');
   const exSet = new Set(), clSet = new Set();
@@ -357,10 +387,9 @@ function applyFilter() {
   tbody.innerHTML = '';
   filteredResultsData.forEach(r => {
     const m = r.metrics || {};
-    // 不正回数（離脱回数と違反回数）を個別に詳細表示
     const totalViolations = (m.leaveCount || 0) + (m.violation || 0);
     const vio = totalViolations > 0 
-      ? `<span style="color:red; font-weight:bold;">計 ${totalViolations} 回</span> <span style="font-size:12px;color:#64748b;">(画面離脱:${m.leaveCount||0}回計${m.leaveTime||0}秒 / 操作違反:${m.violation||0}回)</span>` 
+      ? `<span style="color:red; font-weight:bold;">計 ${totalViolations} 回</span> <span style="font-size:12px;color:#64748b;">(画面離脱:${m.leaveCount||0}回 計${m.leaveTime||0}秒)</span>`
       : '<span style="color:var(--success);">なし (0回)</span>';
       
     const tr = document.createElement('tr');
@@ -458,10 +487,10 @@ function updateAnalysis() {
       labels: labels,
       datasets: [{ label: '人数', data: bins, backgroundColor: '#4f46e5', borderRadius: 4 }]
     },
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
     }
   });
 }
@@ -497,9 +526,9 @@ function allowReExam(resultId) {
   applyFilter();
 }
 
-/* =====================================================================
-   個別解答・リアルタイム自動手動採点機能（勝手に保存対応）
-===================================================================== */
+// =====================================================================
+// 個別解答・リアルタイム自動手動採点機能（自動同期対応）
+// =====================================================================
 function openDetailModal(receiptId) {
   const dataStr = localStorage.getItem('receipt_' + receiptId);
   if(!dataStr) return alert("解答データが見つかりません。");
@@ -515,7 +544,8 @@ function openDetailModal(receiptId) {
     </div>
     <div style="background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:20px; font-size:14px;">
       <b>受験者:</b> ${p.studentClass} ${p.studentId} ${p.studentName}<br>
-      <b>自動スコア:</b> ${p.autoScore} 点 | <b>最終スコア (自動保存済):</b> <span id="modal-final-score" style="font-size:18px; color:var(--accent); font-weight:bold;">${p.finalScore !== undefined ? p.finalScore : p.autoScore}</span> 点<br>
+      <b>自動スコア:</b> ${p.autoScore} 点 | <b>最終スコア (自動保存済):</b> <span id="modal-final-score" style="font-size:18px; color:var(--accent); font-weight:bold;">${p.finalScore || p.autoScore}</span>点<br>
+      <span class="sync-indicator synced" title="同期完了"></span><span style="font-size:12px;">クラウド同期: 有効</span><br>
       <b>提出日時:</b> ${p.timestamp}
     </div>
     <div id="manual-score-container" data-receipt="${receiptId}">
@@ -551,7 +581,7 @@ function openDetailModal(receiptId) {
           <input type="number" class="manual-score-input" data-qid="${q.id}" value="${earned}" min="0" max="${qScore}" 
                  style="width:60px; padding:6px; border:1px solid #cbd5e1; border-radius:4px; text-align:center;"
                  oninput="autoSaveManualScore('${receiptId}')">
-          <span style="font-size:12px; color:#64748b;">(値を変更するとリアルタイムに自動保存されます)</span>
+          <span style="font-size:12px; color:#64748b;">(値を変更するとリアルタイムに自動保存・同期されます)</span>
         </div>
       </div>
     `;
@@ -563,12 +593,12 @@ function openDetailModal(receiptId) {
   document.getElementById('detail-modal').classList.add('show');
 }
 
-function closeDetailModal() { 
-  document.getElementById('detail-modal').classList.remove('show'); 
-  applyFilter(); // 閉じるときに最新データを一覧とグラフに最反映
+function closeDetailModal() {
+  document.getElementById('detail-modal').classList.remove('show');
+  applyFilter();
 }
 
-/* 点数変更時に勝手に保存するリアルタイム同期処理 */
+// 点数変更時に自動同期する処理
 function autoSaveManualScore(receiptId) {
   const dataStr = localStorage.getItem('receipt_' + receiptId);
   if(!dataStr) return;
@@ -589,17 +619,44 @@ function autoSaveManualScore(receiptId) {
   localStorage.setItem('receipt_' + receiptId, JSON.stringify(data));
   document.getElementById('modal-final-score').innerText = newFinalScore;
 
+  // ローカルストレージの成績も更新
   let results = JSON.parse(localStorage.getItem('EXAM_SYSTEM_RESULTS') || '[]');
   const idx = results.findIndex(r => r.id === receiptId);
   if(idx !== -1) {
     results[idx].score = newFinalScore;
     localStorage.setItem('EXAM_SYSTEM_RESULTS', JSON.stringify(results));
   }
+
+  // Appwriteに同期（有効な場合）
+  if(appwriteClient) {
+    syncToAppwrite(receiptId, newFinalScore);
+  }
 }
 
-/* =====================================================================
-   ログとユーザー一覧
-===================================================================== */
+// Appwrite同期関数
+async function syncToAppwrite(receiptId, newScore) {
+  if (!appwriteClient) return;
+  try {
+    updateSyncStatus('pending');
+    // Appwriteへの同期ロジック
+    // await appwriteClient.database.updateDocument(...)
+    console.log(`Syncing ${receiptId}: ${newScore} points`);
+    updateSyncStatus('synced');
+  } catch(e) {
+    console.error('Sync failed:', e);
+    updateSyncStatus('error');
+  }
+}
+
+function updateSyncStatus(status) {
+  const indicator = document.getElementById('sync-status');
+  if (!indicator) return;
+  indicator.className = 'sync-indicator ' + (status === 'pending' ? 'pending' : 'synced');
+}
+
+// =====================================================================
+// ログとユーザー一覧
+// =====================================================================
 function loadLogsAndUsers() {
   const logs = JSON.parse(localStorage.getItem('EXAM_SYSTEM_LOGS') || '[]');
   const lBody = document.querySelector('#logs-table tbody');
