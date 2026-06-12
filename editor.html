@@ -3,33 +3,127 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>試験作成エディタ</title>
+<title>試験作成エディタ（拡張版）</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-:root { --accent: #4f46e5; --accent-light: #eef2ff; --accent-dark: #3730a3; --danger: #ef4444; --success: #10b981; --border: #e2e8f0; --text: #1e293b; --sub: #64748b; --bg: #f1f5f9; --card-bg: #ffffff; --blue-btn: #1565c0; }
+:root { --accent: #4f46e5; --accent-light: #eef2ff; --accent-dark: #3730a3; --danger: #ef4444; --success: #10b981; --border: #e2e8f0; --text: #1e293b; --sub: #64748b; --bg: #f1f5f9; --card-bg: #ffffff; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); }
-.app-header { background: var(--accent); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 200; box-shadow: 0 3px 10px rgba(79,70,229,0.3); }
+.app-header { background: var(--accent); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 200; box-shadow: 0 3px 12px rgba(79,70,229,0.2); }
 .app-header .logo { font-size: 18px; font-weight: 800; }
 .app-header .actions { display: flex; gap: 10px; }
-.editor-layout { display: flex; gap: 0; max-width: 1200px; margin: 0 auto; padding: 30px 20px; gap: 24px; }
+.editor-layout { display: flex; gap: 0; max-width: 1400px; margin: 0 auto; padding: 30px 20px; gap: 24px; }
 .editor-main { flex: 1; min-width: 0; }
-.editor-sidebar { width: 280px; flex-shrink: 0; }
+.editor-sidebar { width: 300px; flex-shrink: 0; }
 .card { background: var(--card-bg); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; border: 2px solid transparent; transition: border 0.15s, box-shadow 0.15s; }
 .card:hover { border-color: var(--border); }
 .card.focused { border-color: var(--accent); box-shadow: 0 4px 14px rgba(79,70,229,0.15); }
 .exam-title-card { background: white; border-radius: 10px; padding: 28px 32px; margin-bottom: 16px; border-top: 8px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-.exam-title-card input[type="text"] { font-size: 26px; font-weight: bold; border: none; border-bottom: 2px solid var(--border); width: 100%; padding: 8px 4px; background: transparent; color: var(--text); outline: none; }
-.exam-title-card textarea { width: 100%; border: none; border-bottom: 1px solid var(--border); font-size: 15px; color: var(--sub); padding: 8px 4px; background: transparent; resize: none; outline: none; margin-top: 12px; min-height: 50px; }
+.exam-title-card input[type="text"] { font-size: 26px; font-weight: bold; border: none; border-bottom: 2px solid var(--border); width: 100%; padding: 8px 4px; background: transparent; color: var(--text); }
+.exam-title-card textarea { width: 100%; border: none; border-bottom: 1px solid var(--border); font-size: 15px; color: var(--sub); padding: 8px 4px; background: transparent; resize: none; outline: none; }
 .section-card { background: var(--accent-light); border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; border: 2px dashed var(--accent); border-left: 6px solid var(--accent); position: relative; }
 .section-card .section-label { font-size: 11px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
-.section-card input[type="text"] { font-size: 18px; font-weight: bold; border: none; border-bottom: 2px solid rgba(79,70,229,0.3); width: 100%; padding: 6px 4px; background: transparent; color: var(--accent-dark); outline: none; }
-.section-card textarea { width: 100%; border: none; border-bottom: 1px solid rgba(79,70,229,0.2); font-size: 14px; color: var(--sub); padding: 6px 4px; background: transparent; resize: none; outline: none; margin-top: 8px; min-height: 40px; }
-.section-card .remove-btn { position: absolute; top: 14px; right: 14px; background: transparent; border: 1px solid rgba(79,70,229,0.3); color: var(--accent); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.section-card input[type="text"] { font-size: 18px; font-weight: bold; border: none; border-bottom: 2px solid rgba(79,70,229,0.3); width: 100%; padding: 6px 4px; background: transparent; color: var(--accent-dark); }
+.section-card textarea { width: 100%; border: none; border-bottom: 1px solid rgba(79,70,229,0.2); font-size: 14px; color: var(--sub); padding: 6px 4px; background: transparent; resize: none; outline: none; }
+.section-card .remove-btn { position: absolute; top: 14px; right: 14px; background: transparent; border: 1px solid rgba(79,70,229,0.3); color: var(--accent); padding: 4px 10px; border-radius: 4px; cursor: pointer; }
 .q-card { padding: 24px 28px; cursor: pointer; position: relative; }
 .q-card .q-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
 .q-card .q-idx { font-size: 11px; font-weight: 800; color: var(--sub); }
-.q-card textarea.q-text-input { width: 100%; border: none; border-bottom: 2px solid var(--border); font-size: 16px; color: var(--text); padding: 6px 4px; background: transparent; resize: none; outline: none; min-height: 50px; font-weight: 500; }
-.q-card textarea.q-desc-input { width: 100%; border: none; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--sub); padding: 4px 4px; background: transparent; resize: none; outline: none; min-height: 30px; }
+
+/* リッチテキストエディタツールバー */
+.rich-text-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.toolbar-btn {
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.toolbar-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.toolbar-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 4px;
+}
+.color-picker-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.color-picker-wrap input[type="color"] {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+/* リッチテキスト表示プレビュー */
+.rich-text-preview {
+  background: #fafbfc;
+  border: 1px dashed var(--border);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 8px;
+  min-height: 40px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.q-text-input {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  font-size: 16px;
+  color: var(--text);
+  padding: 6px 4px;
+  background: transparent;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+.q-desc-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--sub);
+  padding: 4px 4px;
+  background: transparent;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
 .choice-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 4px 0; }
 .choice-indicator { width: 22px; height: 22px; border: 2px solid #cbd5e1; border-radius: 50%; flex-shrink: 0; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center; }
 .choice-indicator.square { border-radius: 4px; }
@@ -42,15 +136,16 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 .tf-opt { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; }
 .tf-opt.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
 .text-placeholder { border: 1px solid var(--border); border-radius: 4px; padding: 12px; color: #94a3b8; font-size: 14px; margin-top: 12px; background: #f8fafc; }
-.model-ans-input { width: 100%; border: none; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--sub); padding: 6px 4px; background: transparent; resize: none; outline: none; min-height: 40px; margin-top:8px;}
-.q-card-footer { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.model-ans-input { width: 100%; border: none; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--sub); padding: 6px 4px; background: transparent; resize: none; outline: none; min-height: 50px; }
+.q-card-footer { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .score-input-wrap { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sub); }
 .score-input-wrap input { width: 56px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; text-align: center; }
 .diff-select, .type-select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
 .del-q-btn { background: none; border: none; color: #cbd5e1; cursor: pointer; padding: 6px; border-radius: 4px; font-size: 14px; }
 .duplicate-q-btn { background: none; border: 1px solid var(--border); color: var(--sub); cursor: pointer; padding: 6px 10px; border-radius: 4px; font-size: 13px; font-weight: bold; }
 .add-area { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
-.add-btn { display: flex; align-items: center; gap: 6px; padding: 10px 20px; border: 2px dashed var(--border); border-radius: 8px; background: white; cursor: pointer; font-size: 14px; color: var(--sub); font-weight: bold; }
+.add-btn { display: flex; align-items: center; gap: 6px; padding: 10px 20px; border: 2px dashed var(--border); border-radius: 8px; background: white; cursor: pointer; font-size: 14px; color: var(--sub); transition: all 0.2s; }
+.add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 .sidebar-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
 .sidebar-card h3 { margin: 0 0 14px 0; font-size: 14px; color: var(--sub); }
 .sidebar-item { display: flex; flex-direction: column; margin-bottom: 14px; }
@@ -67,24 +162,29 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 .btn-primary { background: var(--accent); color: white; }
 .btn-success { background: var(--success); color: white; }
 .btn-outline { background: white; color: var(--accent); border: 2px solid var(--accent); }
-.btn-blue { background: var(--blue-btn) !important; color: white !important; }
-.toast { position: fixed; bottom: 30px; right: 30px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 999; }
+.btn-blue { background: #0ea5e9 !important; color: white !important; }
+.toast { position: fixed; bottom: 30px; right: 30px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 9999; }
 .toast.show { opacity: 1; transform: translateY(0); }
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; align-items: center; justify-content: center; }
 .modal-overlay.show { display: flex; }
-.modal-box { background: white; border-radius: 12px; padding: 28px; width: 90%; max-width: 600px; }
+.modal-box { background: white; border-radius: 12px; padding: 28px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; }
 .modal-box textarea { width: 100%; height: 180px; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 14px; resize: vertical; }
 .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+.config-section { margin-bottom: 20px; }
+.config-section h4 { margin: 0 0 10px 0; font-size: 13px; color: var(--accent); font-weight: bold; text-transform: uppercase; }
+.filename-input-wrap { display: flex; gap: 8px; }
+.filename-input-wrap input { flex: 1; }
+.filename-input-wrap .hint { font-size: 11px; color: var(--sub); align-self: flex-end; margin-bottom: 2px; }
 </style>
 </head>
 <body>
 
 <header class="app-header">
-  <div class="logo">📝 試験作成エディタ</div>
+  <div class="logo">📝 試験作成エディタ（拡張版）</div>
   <div class="actions">
     <button class="btn btn-blue" onclick="openImportModal()">⬆ インポート</button>
     <button class="btn" style="background:rgba(255,255,255,0.15); color:white;" onclick="previewJSON()">👁 JSONプレビュー</button>
-    <button class="btn btn-success" onclick="downloadConfig()">⬇ ダウンロードして配信開始</button>
+    <button class="btn btn-success" onclick="downloadConfig()">⬇ 配信開始</button>
   </div>
 </header>
 
@@ -96,14 +196,22 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
     </div>
     <div id="items-container"></div>
     <div class="add-area">
-      <button class="add-btn" onclick="addQuestion('single')"><span class="icon">＋</span>問題を追加</button>
-      <button class="add-btn" onclick="addSection()"><span class="icon">📑</span>セクションを追加</button>
+      <button class="add-btn" onclick="addQuestion('single')"><span>＋</span>問題を追加</button>
+      <button class="add-btn" onclick="addSection()"><span>📑</span>セクションを追加</button>
     </div>
   </div>
 
   <div class="editor-sidebar">
     <div class="sidebar-card">
       <h3>試験設定</h3>
+      <div class="config-section">
+        <h4>ファイル名設定</h4>
+        <div class="filename-input-wrap">
+          <input type="text" id="cfg-filename" placeholder="filename" value="my-test" style="flex: 1;">
+          <span class="hint">-tests.json</span>
+        </div>
+        <p style="font-size:11px; color:#94a3b8; margin:4px 0 0 0;">最終名: <code id="final-filename">my-test-tests.json</code></p>
+      </div>
       <div class="sidebar-item"><label>試験ID</label><input type="text" id="cfg-id" value="EXAM-2026-A"></div>
       <div class="sidebar-item"><label>既定の点数（初期値）</label><input type="number" id="cfg-default-score" value="10" min="1"></div>
       <div class="sidebar-item"><label>有効開始日時</label><input type="datetime-local" id="cfg-start"></div>
@@ -117,6 +225,7 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
       <div class="toggle-row"><span>進捗バーを表示</span><label class="toggle-switch"><input type="checkbox" id="cfg-progress" checked><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><span>問題番号を表示</span><label class="toggle-switch"><input type="checkbox" id="cfg-qnum" checked><span class="toggle-slider"></span></label></div>
       <div class="toggle-row"><span>自動提出（時間切れ）</span><label class="toggle-switch"><input type="checkbox" id="cfg-autosubmit" checked><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><span>成績表示</span><label class="toggle-switch"><input type="checkbox" id="cfg-show-score" checked><span class="toggle-slider"></span></label></div>
     </div>
 
     <div class="sidebar-card">
@@ -155,9 +264,9 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 </div>
 
 <div class="modal-overlay" id="preview-modal">
-  <div class="modal-box" style="max-width:700px;">
+  <div class="modal-box">
     <h3>config.json プレビュー</h3>
-    <textarea id="preview-textarea" style="height:300px;" readonly></textarea>
+    <textarea id="preview-textarea" style="height:400px;" readonly></textarea>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="closePreviewModal()">閉じる</button>
       <button class="btn btn-success" onclick="downloadConfig()">ダウンロード</button>
@@ -166,10 +275,78 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: 
 </div>
 
 <script>
-let items = []; let nextId = 1;
+let items = [];
+let nextId = 1;
 const TYPES = { single:'単一選択', multiple:'複数選択', tf:'○×問題', text:'記述式', perfect_text:'完全回答記述' };
 
-window.onload = () => { addQuestion('single', false); renderAll(); };
+// リッチテキストフォーマッティング
+class RichTextEditor {
+  constructor(textareaId, previewId) {
+    this.textarea = document.getElementById(textareaId);
+    this.preview = document.getElementById(previewId);
+    this.textarea.addEventListener('input', () => this.updatePreview());
+  }
+  
+  formatText(command, value = null) {
+    const start = this.textarea.selectionStart;
+    const end = this.textarea.selectionEnd;
+    const text = this.textarea.value;
+    const selectedText = text.substring(start, end);
+    
+    let formatted = '';
+    switch(command) {
+      case 'bold':
+        formatted = `<b>${selectedText}</b>`;
+        break;
+      case 'italic':
+        formatted = `<i>${selectedText}</i>`;
+        break;
+      case 'underline':
+        formatted = `<u>${selectedText}</u>`;
+        break;
+      case 'color':
+        formatted = `<span style="color:${value}">${selectedText}</span>`;
+        break;
+      case 'linebreak':
+        formatted = selectedText + '\n';
+        break;
+    }
+    
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    this.textarea.value = before + formatted + after;
+    this.updatePreview();
+  }
+  
+  updatePreview() {
+    if (!this.preview) return;
+    let html = this.textarea.value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/g, '<b>$1</b>')
+      .replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/g, '<i>$1</i>')
+      .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/g, '<u>$1</u>')
+      .replace(/&lt;span style="color:(.*?)"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color:$1">$2</span>')
+      .replace(/\n/g, '<br>');
+    this.preview.innerHTML = html;
+  }
+}
+
+const richEditors = {};
+
+window.onload = () => { 
+  addQuestion('single', false);
+  document.getElementById('cfg-filename').addEventListener('input', updateFilename);
+  updateFilename();
+  renderAll(); 
+};
+
+function updateFilename() {
+  const name = document.getElementById('cfg-filename').value || 'my-test';
+  const safe = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+  document.getElementById('final-filename').textContent = `${safe}-tests.json`;
+}
 
 function addQuestion(type = 'single', doRender = true) {
   const id = 'q' + (nextId++);
@@ -221,9 +398,13 @@ function renderSection(item, idx) {
 }
 
 function renderQuestion(item, idx, qNum) {
-  const d = document.createElement('div'); d.className = 'card q-card';
-  d.onclick = e => { if(!['INPUT','TEXTAREA','SELECT','BUTTON'].includes(e.target.tagName) && !e.target.closest('.choice-indicator')) { document.querySelectorAll('.q-card').forEach(c=>c.classList.remove('focused')); d.classList.add('focused'); } };
-
+  const d = document.createElement('div');
+  d.className = 'card q-card';
+  d.id = `q-card-${idx}`;
+  
+  const previewId = `preview-${item.id}`;
+  const textareaId = `textarea-${item.id}`;
+  
   let chHtml = '';
   if(item.type === 'single' || item.type === 'multiple') {
     const isM = item.type === 'multiple';
@@ -249,11 +430,36 @@ function renderQuestion(item, idx, qNum) {
       <textarea class="model-ans-input" placeholder="模範解答..." oninput="items[${idx}].modelAnswer=this.value">${esc(item.modelAnswer)}</textarea>`;
   }
 
+  const currentScore = (item.score !== undefined && item.score !== null && item.score !== '') ? item.score : 1;
+  
   d.innerHTML = `
     <div class="q-card-top">
       <div style="flex:1;">
         <div class="q-idx">問題 ${qNum}</div>
-        <textarea class="q-text-input" placeholder="問題文" oninput="items[${idx}].text=this.value;this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(item.text)}</textarea>
+        <div style="display:flex; gap:8px; align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="rich-text-toolbar">
+              <button class="toolbar-btn" onclick="formatQuestionText(${idx}, 'bold')" title="太文字">
+                <i class="fas fa-bold"></i>
+              </button>
+              <button class="toolbar-btn" onclick="formatQuestionText(${idx}, 'italic')" title="イタリック">
+                <i class="fas fa-italic"></i>
+              </button>
+              <button class="toolbar-btn" onclick="formatQuestionText(${idx}, 'underline')" title="下線">
+                <i class="fas fa-underline"></i>
+              </button>
+              <div class="toolbar-divider"></div>
+              <div class="color-picker-wrap">
+                <input type="color" id="color-${idx}" value="#000000" onchange="formatQuestionText(${idx}, 'color', this.value)" title="文字色">
+              </div>
+              <button class="toolbar-btn" onclick="formatQuestionText(${idx}, 'linebreak')" title="改行を挿入">
+                <i class="fas fa-enter"></i>
+              </button>
+            </div>
+            <textarea id="${textareaId}" class="q-text-input" placeholder="問題文" oninput="items[${idx}].text=this.value;updateQuestionPreview(${idx});this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(item.text)}</textarea>
+            <div id="${previewId}" class="rich-text-preview"></div>
+          </div>
+        </div>
         <textarea class="q-desc-input" placeholder="補足説明（任意）" oninput="items[${idx}].description=this.value" style="margin-top:8px;">${esc(item.description)}</textarea>
       </div>
     </div>
@@ -271,7 +477,61 @@ function renderQuestion(item, idx, qNum) {
       <button class="duplicate-q-btn" onclick="duplicateQuestion(${idx})">📋 複製</button>
       <button class="del-q-btn" onclick="removeItem(${idx})">🗑</button>
     </div>`;
+  
   return d;
+}
+
+function formatQuestionText(idx, command, value) {
+  const textareaId = `textarea-${items[idx].id}`;
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) return;
+  
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const text = textarea.value;
+  const selectedText = text.substring(start, end) || 'テキスト';
+  
+  let formatted = '';
+  switch(command) {
+    case 'bold':
+      formatted = `<b>${selectedText}</b>`;
+      break;
+    case 'italic':
+      formatted = `<i>${selectedText}</i>`;
+      break;
+    case 'underline':
+      formatted = `<u>${selectedText}</u>`;
+      break;
+    case 'color':
+      formatted = `<span style="color:${value}">${selectedText}</span>`;
+      break;
+    case 'linebreak':
+      formatted = selectedText + '\n';
+      break;
+  }
+  
+  const before = text.substring(0, start);
+  const after = text.substring(end);
+  textarea.value = before + formatted + after;
+  items[idx].text = textarea.value;
+  updateQuestionPreview(idx);
+}
+
+function updateQuestionPreview(idx) {
+  const previewId = `preview-${items[idx].id}`;
+  const preview = document.getElementById(previewId);
+  if (!preview) return;
+  
+  let html = items[idx].text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/g, '<b>$1</b>')
+    .replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/g, '<i>$1</i>')
+    .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/g, '<u>$1</u>')
+    .replace(/&lt;span style="color:(.*?)"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color:$1">$2</span>')
+    .replace(/\n/g, '<br>');
+  preview.innerHTML = html;
 }
 
 function toggleCorrect(idx, oi) {
@@ -310,11 +570,12 @@ function updateStats() {
   `;
 }
 
-function syncSidebarId() {}
-
 function buildJSON() {
   const limStr = document.getElementById('cfg-limit').value;
+  const filename = (document.getElementById('cfg-filename').value || 'my-test').replace(/[^a-zA-Z0-9_-]/g, '_');
+  
   return {
+    fileName: `${filename}-tests.json`,
     settings: {
       examId: document.getElementById('cfg-id').value || "EXAM-" + Date.now(),
       examName: document.getElementById('exam-title-input').value || '無題の試験',
@@ -324,7 +585,7 @@ function buildJSON() {
       timeLimit: limStr ? parseInt(limStr) : null,
       autoSubmit: document.getElementById('cfg-autosubmit').checked,
       showProgress: document.getElementById('cfg-progress').checked,
-      showScore: true,
+      showScore: document.getElementById('cfg-show-score').checked,
       showQNumber: document.getElementById('cfg-qnum').checked,
       randomQuestion: document.getElementById('cfg-rand-q').checked,
       randomSectionQuestion: document.getElementById('cfg-rand-sec').checked,
@@ -352,22 +613,14 @@ function downloadConfig() {
   const output = buildJSON();
   output.status = 'active';
   
-  // システムへの連動保存
-  let exams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
-  exams = exams.filter(e => e.settings.examId !== output.settings.examId);
-  exams.push(output);
-  localStorage.setItem('EXAM_SYSTEM_EXAMS', JSON.stringify(exams));
-
-  // JSONファイルのダウンロードを復元
   const str = JSON.stringify(output, null, 2);
   const blob = new Blob([str], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'config.json';
+  a.download = output.fileName;
   a.click();
   
-  showToast('✅ config.json をダウンロードし、システムへ配信を開始しました');
-  closePreviewModal();
+  showToast('✅ JSONをダウンロードしました');
 }
 
 function openImportModal() { document.getElementById('import-modal').classList.add('show'); }
@@ -386,6 +639,7 @@ function importJSON() {
     document.getElementById('cfg-autosubmit').checked = s.autoSubmit !== false;
     document.getElementById('cfg-progress').checked = s.showProgress !== false;
     document.getElementById('cfg-qnum').checked = s.showQNumber !== false;
+    document.getElementById('cfg-show-score').checked = s.showScore !== false;
     document.getElementById('cfg-rand-q').checked = !!s.randomQuestion;
     document.getElementById('cfg-rand-sec').checked = !!s.randomSectionQuestion;
     document.getElementById('cfg-rand-c').checked = !!s.randomChoice;
@@ -400,7 +654,7 @@ function importJSON() {
     items = []; nextId = 1;
     raw.questions.forEach(q => {
       if(q.type === 'section') items.push({ id: q.id, category: 'section', type: 'section', title: q.title, description: q.description });
-      else items.push({ id: q.id, category: 'question', type: q.type, text: q.text, description: q.description, options: q.options||[], answer: q.answer||[], score: q.score||10, difficulty: q.difficulty||'普', modelAnswer: q.type.includes('text')?q.answer[0]:'' });
+      else items.push({ id: q.id, category: 'question', type: q.type, text: q.text, description: q.description, options: q.options||[], answer: q.answer||[], score: q.score||10, difficulty: q.difficulty||'普', modelAnswer: q.modelAnswer || '' });
     });
     renderAll(); closeImportModal(); showToast('✅ インポート完了');
   } catch(e) { alert('エラー: ' + e.message); }
