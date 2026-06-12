@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>オンライン試験システム</title>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@latest"></script>
 <style>
   :root { --theme: #1565c0; --theme-dark: #0d47a1; --theme-light: #e3f2fd; }
 
@@ -123,7 +124,7 @@
   /* 問題タイトル（説明テキスト付き） */
   .q-block { margin-bottom: 30px; }
   .q-block .q-number { font-size: 12px; font-weight: bold; color: var(--theme); text-transform: uppercase; margin-bottom: 4px; }
-  .q-block .q-text { font-size: 17px; font-weight: bold; line-height: 1.6; color: #1e293b; }
+  .q-block .q-text { font-size: 17px; font-weight: bold; line-height: 1.6; color: #1e293b; white-space: pre-wrap; word-wrap: break-word; }
   .q-block .q-desc { font-size: 13px; color: #64748b; margin-top: 6px; }
   .score-badge { background: #ecfdf5; color: #059669; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-left: 8px; }
   .diff-badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-left: 4px; }
@@ -167,6 +168,11 @@
 
   /* 見直しモード */
   .review-mode-banner { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 10px; text-align: center; font-weight: bold; border-radius: 6px; margin-bottom: 20px; }
+  
+  /* リッチテキスト表示 */
+  .q-text b { font-weight: bold; }
+  .q-text i { font-style: italic; }
+  .q-text u { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -192,7 +198,7 @@
     <div class="form-group">
       <label>受験する試験</label>
       <select id="exam-select" onchange="onExamSelect()">
-        <option value="">-- クラウド(ローカル)から試験を読み込み中... --</option>
+        <option value="">-- 試験を選択してください --</option>
       </select>
     </div>
 
@@ -251,7 +257,7 @@
     <h2>全解答の確認</h2>
     <p style="color:#64748b; margin-bottom:20px;">まだ送信されていません。内容を確認し、必要なら修正してください。</p>
     <div id="pre-submit-list"></div>
-    <button onclick="submitFinalAnswers()" style="background:#059669; color:white; border:none; padding:16px; font-size:17px; font-weight:bold; border-radius:6px; cursor:pointer; width:100%; margin-top:20px;">この内容で送信する ✓</button>
+    <button onclick="submitFinalAnswers()" style="background:#059669; color:white; border:none; padding:16px; font-size:17px; font-weight:bold; border-radius:6px; cursor:pointer; width:100%; margin-top:16px;">解答を送信</button>
     <button class="btn-sub" onclick="backToExamFromReview()">試験画面へ戻る</button>
   </div>
 
@@ -281,8 +287,8 @@
 // グローバル状態
 // ============================================================
 let config = {};
-let questions = []; 
-let questionItems = []; 
+let questions = [];
+let questionItems = [];
 let currentIdx = 0;
 let userAnswers = {};
 let timerInterval = null;
@@ -292,13 +298,38 @@ let leaveStart = null;
 let metrics = { leaveCount: 0, leaveTime: 0, violation: 0 };
 let leaveOverlayActive = false;
 let studentInfo = {};
-let activeExams = []; 
+let activeExams = [];
+
+// Appwriteクライアント（オプション）
+let appwriteClient = null;
+const APPWRITE_ENDPOINT = 'https://cloud.appwrite.io/v1';
+const APPWRITE_PROJECT_ID = 'your-project-id';
+
+function initAppwrite() {
+  try {
+    const { Client, Databases } = window.Appwrite;
+    if (!Client) return;
+    
+    appwriteClient = {
+      client: new Client()
+        .setEndpoint(APPWRITE_ENDPOINT)
+        .setProject(APPWRITE_PROJECT_ID),
+      database: new Databases(new Client()
+        .setEndpoint(APPWRITE_ENDPOINT)
+        .setProject(APPWRITE_PROJECT_ID))
+    };
+  } catch(e) {
+    console.log('Appwrite not available, using localStorage');
+  }
+}
 
 // ============================================================
 // システム起動
 // ============================================================
 async function loadSystem() {
   try {
+    initAppwrite();
+    
     const examsStr = localStorage.getItem('EXAM_SYSTEM_EXAMS');
     activeExams = examsStr ? JSON.parse(examsStr) : [];
     const select = document.getElementById('exam-select');
@@ -306,7 +337,7 @@ async function loadSystem() {
 
     let availableCount = 0;
     activeExams.forEach(e => {
-      if (e.status === 'active') { // 実施中のものだけ表示
+      if (e.status === 'active') {
         const opt = document.createElement('option');
         opt.value = e.settings.examId;
         opt.textContent = e.settings.examName;
@@ -332,7 +363,7 @@ function onExamSelect() {
   const selected = activeExams.find(e => e.settings.examId === examId);
   if(selected) {
     config = selected.settings;
-    questions = JSON.parse(JSON.stringify(selected.questions || [])); // ディープコピー
+    questions = JSON.parse(JSON.stringify(selected.questions || []));
     document.documentElement.style.setProperty('--theme', config.themeColor || '#1565c0');
     document.getElementById('display-exam-name').innerText = config.examName || '試験';
     if(!config.showProgress) {
@@ -344,7 +375,7 @@ function onExamSelect() {
 }
 
 // ============================================================
-// 解答中データの一時保存・復元ロジックとリアルタイム発信
+// 一時保存・復元ロジック
 // ============================================================
 function saveTempProgress() {
   if (!isExamActive) return;
@@ -354,7 +385,7 @@ function saveTempProgress() {
     currentIdx,
     timeLeft,
     metrics,
-    questions // シャッフル状態も保存
+    questions
   };
   localStorage.setItem(`exam_temp_progress_${config.examId || 'default'}`, JSON.stringify(progress));
 }
@@ -387,7 +418,7 @@ function checkAndRestoreProgress() {
            const progress = JSON.parse(saved);
            if (confirm("未提出の試験回答データが見つかりました。データを復元して途中の状態から試験を再開しますか？")) {
               document.getElementById('exam-select').value = savedExamId;
-              onExamSelect(); 
+              onExamSelect();
               
               studentInfo = progress.studentInfo || {};
               userAnswers = progress.userAnswers || {};
@@ -412,9 +443,9 @@ function checkAndRestoreProgress() {
               else document.getElementById('info-timer').style.display = 'none';
               showCard('card-exam');
               renderQuestion();
-              return; 
+              return;
            } else {
-              localStorage.removeItem(key); 
+              localStorage.removeItem(key);
            }
         }
      }
@@ -516,12 +547,12 @@ function startExam() {
     document.getElementById('info-timer').style.display = 'block';
     startTimer();
   } else {
-    document.getElementById('info-timer').style.display = 'none'; // タイマー非表示
+    document.getElementById('info-timer').style.display = 'none';
   }
   
   showCard('card-exam');
   renderQuestion();
-  saveTempProgress(); 
+  saveTempProgress();
   broadcastLiveStatus();
 }
 
@@ -561,6 +592,25 @@ function updateTimerDisplay() {
   const el = document.getElementById('info-timer');
   el.innerText = `残り ${m}:${s}`;
   el.style.color = timeLeft < 300 ? '#dc2626' : (timeLeft < 600 ? '#d97706' : '#334155');
+}
+
+// ============================================================
+// リッチテキストレンダリング
+// ============================================================
+function renderRichText(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/g, '<b>$1</b>')
+    .replace(/&lt;\/b&gt;/g, '</b>')
+    .replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/g, '<i>$1</i>')
+    .replace(/&lt;\/i&gt;/g, '</i>')
+    .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/g, '<u>$1</u>')
+    .replace(/&lt;\/u&gt;/g, '</u>')
+    .replace(/&lt;span style="color:(.*?)"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color:$1">$2</span>')
+    .replace(/\n/g, '<br>');
 }
 
 // ============================================================
@@ -636,16 +686,20 @@ function renderQuestion() {
 
   const currentScore = (q.score !== undefined && q.score !== null && q.score !== '') ? q.score : 1;
   const diffClass = `diff-${q.difficulty || '普'}`;
+  
+  // リッチテキストレンダリング
+  const richTextContent = renderRichText(q.text);
+  
   const html = `
     ${sectionHtml}
     <div class="q-block">
       <div class="q-number">問題 ${currentIdx + 1}</div>
       <div class="q-text">
-        ${escapeHtml(q.text)}
+        ${richTextContent}
         <span class="score-badge">${currentScore}点</span>
         <span class="diff-badge ${diffClass}">${q.difficulty || '普'}</span>
       </div>
-      ${q.description ? `<div class="q-desc">${escapeHtml(q.description)}</div>` : ''}
+      ${q.description ? `<div class="q-desc">${renderRichText(q.description)}</div>` : ''}
     </div>
     ${choiceHtml}
   `;
@@ -671,7 +725,7 @@ function saveAnswer(qId, type, idx, checked) {
     else arr = arr.filter(v => v !== idx);
     userAnswers[qId] = arr;
   }
-  saveTempProgress(); 
+  saveTempProgress();
 }
 function saveTextAnswer(qId, val) {
   userAnswers[qId] = [val];
@@ -730,9 +784,9 @@ function showPreSubmit() {
           <span style="font-weight:bold;color:#334155;">第${idx+1}問 (${currentScore}点)</span>
           ${answered ? '<span class="badge-answered">✓ 解答済</span>' : '<span class="badge-empty">⚠ 未解答</span>'}
         </div>
-        <div style="font-size:14px;color:#475569;">${escapeHtml(q.text)}</div>
+        <div style="font-size:14px;color:#475569;">${renderRichText(q.text)}</div>
         ${ansPreview}
-        <button onclick="jumpToQuestion(${idx})" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:4px 12px;font-size:12px;border-radius:4px;cursor:pointer;margin-top:8px;">修正する</button>
+        <button onclick="jumpToQuestion(${idx})" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:4px 12px;font-size:12px;border-radius:4px;cursor:pointer;margin-top:8px;">修正</button>
       </div>`;
   });
   document.getElementById('pre-submit-list').innerHTML = html;
@@ -751,7 +805,7 @@ function backToExamFromReview() {
 }
 
 // ============================================================
-// 最終提出（完全回答記述のロジック含む）
+// 最終提出
 // ============================================================
 async function submitFinalAnswers() {
   isExamActive = false;
@@ -766,7 +820,6 @@ async function submitFinalAnswers() {
     const currentScore = (q.score !== undefined && q.score !== null && q.score !== '') ? Number(q.score) : 1;
     totalScore += currentScore;
     
-    // 完全回答記述の採点ロジック
     if (q.type === 'perfect_text') {
       const ua = userAnswers[q.id] || [];
       const ansText = (ua[0] || '').trim();
@@ -774,7 +827,7 @@ async function submitFinalAnswers() {
       if (ansText !== '' && ansText === model) {
          autoScore += currentScore;
       }
-    } else if(q.type !== 'text') { 
+    } else if(q.type !== 'text') {
       const ua = userAnswers[q.id] || [];
       const ok = ua.length === q.answer.length && ua.every(v => q.answer.includes(v));
       if(ok) autoScore += currentScore;
@@ -786,15 +839,14 @@ async function submitFinalAnswers() {
   const payload = {
     receiptId, examId: config.examId, examName: config.examName,
     studentClass: studentInfo.cls, studentId: studentInfo.sid, studentName: studentInfo.name,
-    autoScore, answers: userAnswers, metrics,
-    timestamp: new Date().toLocaleString('ja-JP')
+    autoScore, finalScore: autoScore, answers: userAnswers, metrics,
+    timestamp: new Date().toLocaleString('ja-JP'), manualScores: {}
   };
 
   localStorage.setItem(`receipt_${receiptId}`, JSON.stringify({ payload, questions: questionItems }));
   localStorage.setItem(`exam_rec_${config.examId}_${studentInfo.sid}`, receiptId);
-
   localStorage.removeItem(`exam_temp_progress_${config.examId || 'default'}`);
-  localStorage.removeItem(`live_${config.examId}_${studentInfo.sid}`); 
+  localStorage.removeItem(`live_${config.examId}_${studentInfo.sid}`);
 
   const resultRecord = {
     id: receiptId,
@@ -856,16 +908,16 @@ function onVisibilityChange() {
     metrics.leaveCount++;
     recordViolation("画面離脱");
     showLeaveOverlay();
-    saveTempProgress(); 
-    broadcastLiveStatus(); 
+    saveTempProgress();
+    broadcastLiveStatus();
   } else {
     if(leaveStart) {
       const sec = Math.floor((Date.now() - leaveStart) / 1000);
       metrics.leaveTime += sec;
       leaveStart = null;
       updateLeaveOverlayMeta();
-      saveTempProgress(); 
-      broadcastLiveStatus(); 
+      saveTempProgress();
+      broadcastLiveStatus();
     }
   }
 }
@@ -891,7 +943,7 @@ function dismissLeaveOverlay() {
 function recordViolation(msg) {
   metrics.violation++;
   console.warn("[試験監視] " + msg + " | count=" + metrics.violation);
-  broadcastLiveStatus(); 
+  broadcastLiveStatus();
 }
 
 // ============================================================
@@ -907,7 +959,6 @@ function enterReviewMode() {
   const p = data.payload;
   const qList = data.questions;
 
-  // 管理者が回答を終了したテストは見直し不可とするブロック処理
   const allExams = JSON.parse(localStorage.getItem('EXAM_SYSTEM_EXAMS') || '[]');
   const examDef = allExams.find(e => e.settings.examId === p.examId);
   if (examDef && examDef.status !== 'active') {
@@ -918,7 +969,7 @@ function enterReviewMode() {
   document.getElementById('review-meta-info').innerHTML = `
     <b>受験者:</b> ${escapeHtml(p.studentClass)} ${escapeHtml(p.studentId)} ${escapeHtml(p.studentName)}<br>
     <b>実施日時:</b> ${p.timestamp}<br>
-    <b>客観式スコア:</b> <span style="font-size:18px;color:#dc2626;font-weight:bold;">${p.autoScore} 点</span>
+    <b>スコア:</b> <span style="font-size:18px;color:#dc2626;font-weight:bold;">${p.finalScore || p.autoScore} 点</span>
   `;
 
   let html = '';
@@ -944,7 +995,7 @@ function enterReviewMode() {
     html += `
       <div style="border:1px solid #e2e8f0;border-radius:8px;padding:18px;margin-bottom:12px;background:white;">
         <div style="font-weight:bold;font-size:15px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
-          Q${idx+1}. ${escapeHtml(q.text)}
+          Q${idx+1}. ${renderRichText(q.text)}
           <span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-size:12px;">${currentScore}点</span>
           ${(q.type !== 'text') ? (isOk ? '<span style="color:#059669;">● 正解</span>' : '<span style="color:#dc2626;">✕ 不正解</span>') : ''}
         </div>
